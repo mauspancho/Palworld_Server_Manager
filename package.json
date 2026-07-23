@@ -1,0 +1,44 @@
+{
+  "name": "discord-server-structure-tool",
+  "version": "0.1.0",
+  "description": "CLI multiplataforma para administrar la estructura de un servidor de Discord con discord.js.",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "discord-structure": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "discord:validate": "node dist/cli.js validate",
+    "discord:list": "node dist/cli.js list",
+    "discord:backup": "node dist/cli.js backup",
+    "discord:plan": "node dist/cli.js plan",
+    "discord:apply": "node dist/cli.js apply",
+    "discord:restore": "node dist/cli.js restore",
+    "bot:dev": "node --watch dist/bot.js",
+    "bot:start": "node dist/bot.js",
+    "bot:validate": "node dist/bot-validate.js"
+  },
+  "keywords": [
+    "discord",
+    "discord.js",
+    "typescript",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

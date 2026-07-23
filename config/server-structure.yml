@@ -1,0 +1,76 @@
+protectedRoleNames:
+  - Admin
+  - Palworld Server Manager
+
+administrativeRoleNames:
+  - Admin
+  - Palworld Server Manager
+
+categories:
+  - name: "📌 INFORMACIÓN"
+    channels:
+      - name: "👋・bienvenida"
+        type: text
+      - name: "📜・reglas"
+        type: text
+      - name: "📢・anuncios"
+        type: text
+      - name: "🌐・datos-del-servidor"
+        type: text
+      - name: "🎭・elige-tus-roles"
+        type: text
+
+  - name: "🌎 COMUNIDAD"
+    channels:
+      - name: "💬・chat-general"
+        type: text
+      - name: "🖼️・capturas-y-videos"
+        type: text
+      - name: "🐾・presume-tu-pal"
+        type: text
+      - name: "🎥・directos"
+        type: text
+      - name: "💡・sugerencias"
+        type: text
+
+  - name: "🎮 PALWORLD"
+    channels:
+      - name: "🔎・buscar-grupo"
+        type: text
+      - name: "🏠・bases"
+        type: text
+      - name: "🥚・crianza"
+        type: text
+      - name: "⚔️・jefes-y-raids"
+        type: text
+      - name: "💱・intercambios"
+        type: text
+      - name: "🆘・ayuda"
+        type: text
+      - name: "🐛・reportar-problemas"
+        type: text
+
+  - name: "🔊 VOZ"
+    channels:
+      - name: "General"
+        type: voice
+      - name: "Exploración"
+        type: voice
+      - name: "Construcción"
+        type: voice
+      - name: "Jefes y raids"
+        type: voice
+      - name: "Ausente"
+        type: voice
+
+  - name: "🔒 ADMINISTRACIÓN"
+    private: true
+    channels:
+      - name: "🛡️・moderación"
+        type: text
+      - name: "📥・entradas-y-salidas"
+        type: text
+      - name: "📝・registro-mensajes"
+        type: text
+      - name: "🤖・configuración-bots"
+        type: text
