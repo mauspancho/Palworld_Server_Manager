@@ -1,0 +1,57 @@
+groups:
+  - id: platform
+    title: "Selecciona tu plataforma"
+    description: "Puedes elegir una o varias plataformas."
+    minValues: 0
+    maxValues: 3
+    roles:
+      - name: "🎮 Xbox"
+        description: "Juego desde Xbox"
+        emoji: "🎮"
+      - name: "🖥️ PC / Steam"
+        description: "Juego desde PC o Steam"
+        emoji: "🖥️"
+      - name: "🎮 PlayStation"
+        description: "Juego desde PlayStation"
+        emoji: "🎮"
+
+  - id: notifications
+    title: "Selecciona tus notificaciones"
+    description: "Elige los avisos que deseas recibir."
+    minValues: 0
+    maxValues: 4
+    roles:
+      - name: "📢 Avisos"
+        description: "Noticias importantes del servidor"
+        emoji: "📢"
+      - name: "🎉 Eventos"
+        description: "Eventos de la comunidad"
+        emoji: "🎉"
+      - name: "🔧 Mantenimientos"
+        description: "Reinicios y mantenimiento"
+        emoji: "🔧"
+      - name: "🎥 Directos"
+        description: "Avisos de transmisiones"
+        emoji: "🎥"
+
+  - id: playstyle
+    title: "Selecciona tu estilo de juego"
+    description: "Elige las actividades que te interesan."
+    minValues: 0
+    maxValues: 5
+    roles:
+      - name: "🏗️ Constructor"
+        description: "Construcción y diseño de bases"
+        emoji: "🏗️"
+      - name: "🥚 Criador"
+        description: "Crianza y mejora de Pals"
+        emoji: "🥚"
+      - name: "⚔️ Jefes y raids"
+        description: "Combates y jefes"
+        emoji: "⚔️"
+      - name: "🔎 Explorador"
+        description: "Exploración y recursos"
+        emoji: "🔎"
+      - name: "💱 Comerciante"
+        description: "Intercambios entre jugadores"
+        emoji: "💱"

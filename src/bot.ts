@@ -8,7 +8,7 @@ const context = createContext();
 
 async function main(): Promise<void> {
   const env = loadBotEnv(context.rootDir);
-  await startBot(env);
+  await startBot(env, { rootDir: context.rootDir });
 }
 
 main().catch((error: unknown) => {

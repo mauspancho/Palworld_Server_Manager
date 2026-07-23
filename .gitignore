@@ -3,4 +3,5 @@ node_modules/
 dist/
 backups/
 logs/
+state/
 *.log

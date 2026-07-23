@@ -18,7 +18,8 @@
     "discord:restore": "node dist/cli.js restore",
     "bot:dev": "node --watch dist/bot.js",
     "bot:start": "node dist/bot.js",
-    "bot:validate": "node dist/bot-validate.js"
+    "bot:validate": "node dist/bot-validate.js",
+    "roles:publish": "node dist/roles-publish.js"
   },
   "keywords": [
     "discord",

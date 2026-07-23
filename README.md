@@ -37,6 +37,7 @@ npm run discord:restore
 npm run bot:dev
 npm run bot:start
 npm run bot:validate
+npm run roles:publish
 ```
 
 `discord:plan` solo lee Discord y muestra las operaciones necesarias para llegar a `config/server-structure.yml`.
@@ -85,6 +86,31 @@ npm run bot:validate
 
 `bot:validate` comprueba que canales y roles existan, que el bot pueda enviar mensajes donde corresponde, que tenga `ManageRoles` y que su rol mas alto este por encima de `MEMBER_ROLE_ID`.
 
+## Self-roles
+
+La seleccion automatica de roles se configura en `config/self-roles.yml`.
+
+Para publicar o actualizar el mensaje persistente de seleccion de roles:
+
+```sh
+npm run build
+npm run roles:publish
+```
+
+`roles:publish`:
+
+- Valida `ROLES_CHANNEL_ID`.
+- Crea los roles configurados si no existen.
+- No duplica roles existentes.
+- No elimina ningun rol.
+- Comprueba que los roles seleccionables esten debajo de `Palworld Server Manager`.
+- Actualiza el mensaje anterior si existe.
+- Guarda el ID del mensaje en `state/self-roles-message.json`.
+
+La carpeta `state/` se crea automaticamente y no se versiona.
+
+El bot permanente escucha `interactionCreate` y procesa solo menus con `customId` que empiezan con `self-role:`. Las interacciones se limitan al mensaje publicado por el bot, y solo agregan o retiran roles del grupo usado. No modifica `MEMBER_ROLE_ID`, `Admin`, `Palworld Server Manager`, `Bots` ni roles administrados por integraciones.
+
 ## Windows
 
 1. Instala Node.js 20.11 o superior desde el sitio oficial.
@@ -105,6 +131,12 @@ Para ejecutar el bot en modo desarrollo:
 
 ```sh
 npm run bot:dev
+```
+
+Para publicar los menus de roles en Windows:
+
+```sh
+npm run roles:publish
 ```
 
 ## Debian
@@ -130,6 +162,12 @@ Para ejecutar el bot manualmente:
 npm run bot:start
 ```
 
+Para publicar o actualizar los menus de roles en Debian:
+
+```sh
+npm run roles:publish
+```
+
 No se crea todavia el servicio `systemd`. Cuando se agregue, debe ejecutar `npm run bot:start` desde la carpeta del proyecto y cargar `.env` de forma segura.
 
 ## Seguridad operativa
@@ -140,3 +178,4 @@ No se crea todavia el servicio `systemd`. Cuando se agregue, debe ejecutar `npm 
 - La API de Discord se usa mediante `discord.js`, que gestiona las respuestas y limites de velocidad del cliente REST.
 - La herramienta evita duplicados buscando canales y categorias existentes por nombre y tipo.
 - El bot no lee mensajes y no requiere `MessageContent`.
+- `state/` contiene identificadores operativos del mensaje persistente y no debe subirse al repositorio.

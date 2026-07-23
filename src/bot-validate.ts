@@ -11,7 +11,7 @@ async function main(): Promise<void> {
   const client = createBotClient();
   try {
     await client.login(env.DISCORD_BOT_TOKEN);
-    await validateBotStartup(client, env);
+    await validateBotStartup(client, env, context.rootDir);
     console.log("Configuracion del bot valida.");
   } finally {
     client.destroy();

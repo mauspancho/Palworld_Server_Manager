@@ -11,6 +11,10 @@ import { botEnvSecrets } from "./bot-config.js";
 import { sanitizeSecret } from "./errors.js";
 import { buildDirectWelcomeMessage, buildWelcomeEmbed, buildWelcomeMessageInput } from "./bot-message.js";
 import { validateBotConfiguration } from "./bot-validation.js";
+import { handleSelfRoleInteraction } from "./self-roles-interactions.js";
+import { loadSelfRolesConfig } from "./self-roles-config.js";
+import { selfRolesConfigPath } from "./self-roles-state.js";
+import { validateExistingSelfRoles } from "./self-roles-validation.js";
 
 interface ProcessedJoin {
   memberId: string;
@@ -19,10 +23,12 @@ interface ProcessedJoin {
 
 export interface BotRuntimeOptions {
   sendDirectWelcome?: boolean;
+  rootDir?: string;
 }
 
 const processedJoins = new Map<string, ProcessedJoin>();
 const processedJoinTtlMs = 10 * 60 * 1000;
+const registeredClients = new WeakSet<Client>();
 
 export function createBotClient(): Client {
   return new Client({
@@ -31,7 +37,7 @@ export function createBotClient(): Client {
   });
 }
 
-export async function validateBotStartup(client: Client, env: BotEnv): Promise<void> {
+export async function validateBotStartup(client: Client, env: BotEnv, rootDir = process.cwd()): Promise<void> {
   const guild = await client.guilds.fetch(env.DISCORD_GUILD_ID);
   const botUserId = client.user?.id;
   if (!botUserId) {
@@ -39,15 +45,27 @@ export async function validateBotStartup(client: Client, env: BotEnv): Promise<v
   }
   const botMember = await guild.members.fetch(botUserId);
   const result = await validateBotConfiguration(guild, botMember, env);
-  if (result.errors.length > 0) {
-    throw new Error(result.errors.join("\n"));
+  const selfRolesConfig = await loadSelfRolesConfig(selfRolesConfigPath(rootDir));
+  const selfRolesResult = await validateExistingSelfRoles(guild, botMember, env, selfRolesConfig);
+  const errors = [...result.errors, ...selfRolesResult.errors];
+  const warnings = [...result.warnings, ...selfRolesResult.warnings];
+  for (const warning of warnings) {
+    safeLog(`Advertencia: ${warning}`);
+  }
+  if (errors.length > 0) {
+    throw new Error(errors.join("\n"));
   }
 }
 
 export function registerBotHandlers(client: Client, env: BotEnv, options: BotRuntimeOptions = {}): void {
-  client.once("ready", async () => {
+  if (registeredClients.has(client)) {
+    return;
+  }
+  registeredClients.add(client);
+
+  client.once("clientReady", async () => {
     safeLog(`Bot listo como ${client.user?.tag ?? "usuario desconocido"}.`);
-    await validateBotStartup(client, env).catch((error) => {
+    await validateBotStartup(client, env, options.rootDir ?? process.cwd()).catch((error) => {
       safeError("Validacion inicial fallida.", error, env);
       process.exitCode = 1;
       void shutdownClient(client);
@@ -68,6 +86,15 @@ export function registerBotHandlers(client: Client, env: BotEnv, options: BotRun
     if (oldMember.pending === true && newMember.pending === false) {
       await assignMemberRoleIfAllowed(newMember, env).catch((error) => safeError("Error asignando rol tras verificacion.", error, env));
     }
+  });
+
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isStringSelectMenu()) {
+      return;
+    }
+    await handleSelfRoleInteraction(interaction, env, options.rootDir ?? process.cwd()).catch((error) => {
+      safeError("Error procesando self-role.", error, env);
+    });
   });
 }
 
