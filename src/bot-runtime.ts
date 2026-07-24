@@ -15,6 +15,7 @@ import { handleSelfRoleInteraction } from "./self-roles-interactions.js";
 import { loadSelfRolesConfig } from "./self-roles-config.js";
 import { selfRolesConfigPath } from "./self-roles-state.js";
 import { validateExistingSelfRoles } from "./self-roles-validation.js";
+import { handleBotInteraction } from "./bot-interactions.js";
 
 interface ProcessedJoin {
   memberId: string;
@@ -90,6 +91,16 @@ export function registerBotHandlers(client: Client, env: BotEnv, options: BotRun
 
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isStringSelectMenu()) {
+      await handleBotInteraction(interaction, env, options.rootDir ?? process.cwd()).catch((error) => {
+        safeError("Error procesando interaccion.", error, env);
+      });
+      return;
+    }
+    const handled = await handleBotInteraction(interaction, env, options.rootDir ?? process.cwd()).catch((error) => {
+      safeError("Error procesando interaccion.", error, env);
+      return true;
+    });
+    if (handled) {
       return;
     }
     await handleSelfRoleInteraction(interaction, env, options.rootDir ?? process.cwd()).catch((error) => {

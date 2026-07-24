@@ -1,15 +1,29 @@
-# Discord Server Manager
+# Palworld Server Manager
 
-Herramienta multiplataforma para administrar la estructura de un servidor de Discord y ejecutar un bot permanente con Node.js, TypeScript y `discord.js`.
+Herramienta multiplataforma para administrar Discord y automatizaciones comunitarias de Palworld con Node.js, TypeScript y `discord.js`.
 
-La herramienta nunca elimina canales, categorias ni roles. Tampoco modifica usuarios, asignaciones de roles existentes ni los roles protegidos `Admin` y `Palworld Server Manager`.
+## Modulos
 
-## Configuracion
+- CLI administrativa: `validate`, `list`, `backup`, `plan`, `apply`, `restore`.
+- Bot permanente: bienvenida, DM de bienvenida, registro de entradas y asignacion segura de `MEMBER_ROLE_ID`.
+- Self-roles: menus persistentes en `ROLES_CHANNEL_ID`.
+- Gremios: roles y canales privados por gremio, mas comandos `/gremio`.
+- Estado Palworld: panel persistente, `/estado` y alertas por cambio.
+- Tickets: panel persistente y base de datos en `data/tickets.json`.
+- Sugerencias: comandos y votos persistentes.
+- Eventos: base de recordatorios persistentes.
+- Anti-raid: base desactivada por defecto, sin ban ni kick automatico.
+- RCON: abstraccion separada, desactivada por defecto.
+- Control Palworld: helper externo permitido, desactivado por defecto.
+- Vinculacion Discord-Palworld: base desactivada, sin verificacion automatica.
 
-1. Copia `.env.example` a `.env`.
-2. Completa las variables:
+## Variables
 
-```sh
+Copia `.env.example` a `.env` y completa los valores necesarios.
+
+Variables principales:
+
+```txt
 DISCORD_BOT_TOKEN=
 DISCORD_GUILD_ID=
 WELCOME_CHANNEL_ID=
@@ -19,15 +33,80 @@ MEMBER_ROLE_ID=
 MEMBER_LOG_CHANNEL_ID=
 ```
 
-3. Ajusta `config/server-structure.yml` si necesitas cambiar categorias, canales o roles administrativos.
+Estado Palworld:
 
-El token no se imprime en consola, logs, respaldos ni archivos generados.
+```txt
+PALWORLD_STATUS_ENABLED=true
+PALWORLD_STATUS_CHANNEL_ID=
+PALWORLD_SERVICE_NAME=palworld.service
+PALWORLD_HOST=127.0.0.1
+PALWORLD_GAME_PORT=8211
+PALWORLD_RCON_ENABLED=false
+PALWORLD_RCON_HOST=127.0.0.1
+PALWORLD_RCON_PORT=
+PALWORLD_RCON_PASSWORD=
+PALWORLD_STATUS_INTERVAL_SECONDS=60
+PALWORLD_ALERT_CHANNEL_ID=
+```
 
-## Comandos
+Tickets, sugerencias, eventos y seguridad:
+
+```txt
+TICKETS_ENABLED=true
+TICKET_PANEL_CHANNEL_ID=
+TICKET_LOG_CHANNEL_ID=
+TICKET_CATEGORY_ID=
+TICKET_ADMIN_ROLE_NAMES=Admin,Moderador
+SUGGESTIONS_ENABLED=true
+SUGGESTIONS_CHANNEL_ID=
+BOT_TIMEZONE=America/Mexico_City
+ANTI_RAID_ENABLED=false
+QUARANTINE_ROLE_ID=
+PLAYER_LINKING_ENABLED=false
+```
+
+Control Palworld:
+
+```txt
+PALWORLD_CONTROL_ENABLED=false
+PALWORLD_RESTART_ENABLED=false
+PALWORLD_CONTROL_HELPER=/usr/local/sbin/palworld-discord-control
+PALWORLD_ANNOUNCEMENT_CHANNEL_ID=
+```
+
+Nunca guardes tokens, contrasenas RCON ni secretos en Git.
+
+## Permisos E Intents
+
+Intents requeridos:
+
+```txt
+Guilds
+GuildMembers
+```
+
+No se usa `MessageContent` por defecto.
+
+Permisos recomendados:
+
+```txt
+ViewChannel
+SendMessages
+ReadMessageHistory
+ManageChannels
+ManageRoles
+UseApplicationCommands
+CreatePublicThreads
+CreatePrivateThreads
+```
+
+No dependas de `Administrator`. El rol del bot debe estar por encima de `MEMBER_ROLE_ID`, roles de self-roles, roles de gremios y cuarentena.
+
+## Scripts
 
 ```sh
 npm run build
-npm run test
+npm test
 npm run discord:validate
 npm run discord:list
 npm run discord:backup
@@ -38,144 +117,119 @@ npm run bot:dev
 npm run bot:start
 npm run bot:validate
 npm run roles:publish
+npm run guilds:publish
+npm run status:publish
+npm run status:validate
+npm run tickets:publish
+npm run rcon:validate
+npm run commands:register
+npm run commands:delete
+npm run commands:list
+npm run community:publish
+npm run validate:all
 ```
 
-`discord:plan` solo lee Discord y muestra las operaciones necesarias para llegar a `config/server-structure.yml`.
-
-`discord:apply` crea un respaldo antes de modificar Discord, muestra el plan y exige escribir `APLICAR` para confirmar. No ejecutes este comando hasta revisar el plan.
-
-`discord:restore` restaura desde el respaldo JSON mas reciente en `backups/` o desde una ruta indicada:
-
-```sh
-node dist/cli.js restore backups/server-structure-YYYY-MM-DD.json
-```
-
-Tambien crea un respaldo previo y exige escribir `RESTAURAR`.
-
-## Bot permanente
-
-El bot usa exclusivamente estos Gateway Intents:
-
-```txt
-Guilds
-GuildMembers
-```
-
-No usa `MessageContent`.
-
-Flujo implementado:
-
-- Escucha `guildMemberAdd`.
-- Ignora otros servidores y cuentas bot.
-- Evita bienvenidas duplicadas para el mismo evento de entrada.
-- Envia un embed a `WELCOME_CHANNEL_ID`, mencionando al usuario.
-- Incluye enlaces a `RULES_CHANNEL_ID` y `ROLES_CHANNEL_ID`.
-- Intenta enviar mensaje privado con esos enlaces y maneja usuarios con DM cerrado.
-- Registra la entrada en `MEMBER_LOG_CHANNEL_ID`.
-- Si `member.pending` es `true`, espera `guildMemberUpdate` y asigna `MEMBER_ROLE_ID` cuando cambie a `false`.
-- Maneja errores de permisos sin detener todo el proceso.
-- Cierra de forma controlada con `SIGINT` o `SIGTERM`.
-- Deja la reconexion automatica en manos de `discord.js`.
-
-Antes de dejarlo permanente, ejecuta:
-
-```sh
-npm run build
-npm run bot:validate
-```
-
-`bot:validate` comprueba que canales y roles existan, que el bot pueda enviar mensajes donde corresponde, que tenga `ManageRoles` y que su rol mas alto este por encima de `MEMBER_ROLE_ID`.
-
-## Self-roles
-
-La seleccion automatica de roles se configura en `config/self-roles.yml`.
-
-Para publicar o actualizar el mensaje persistente de seleccion de roles:
-
-```sh
-npm run build
-npm run roles:publish
-```
-
-`roles:publish`:
-
-- Valida `ROLES_CHANNEL_ID`.
-- Crea los roles configurados si no existen.
-- No duplica roles existentes.
-- No elimina ningun rol.
-- Comprueba que los roles seleccionables esten debajo de `Palworld Server Manager`.
-- Actualiza el mensaje anterior si existe.
-- Guarda el ID del mensaje en `state/self-roles-message.json`.
-
-La carpeta `state/` se crea automaticamente y no se versiona.
-
-El bot permanente escucha `interactionCreate` y procesa solo menus con `customId` que empiezan con `self-role:`. Las interacciones se limitan al mensaje publicado por el bot, y solo agregan o retiran roles del grupo usado. No modifica `MEMBER_ROLE_ID`, `Admin`, `Palworld Server Manager`, `Bots` ni roles administrados por integraciones.
+`discord:apply`, `roles:publish`, `guilds:publish`, `status:publish`, `tickets:publish`, `commands:register`, `commands:delete` y `community:publish` modifican Discord. Revisalos antes de ejecutarlos.
 
 ## Windows
-
-1. Instala Node.js 20.11 o superior desde el sitio oficial.
-2. En el portal de desarrolladores de Discord, habilita el intent privilegiado `Server Members Intent` para el bot.
-3. Abre una terminal en la carpeta del proyecto.
-4. Ejecuta:
 
 ```sh
 npm install
 npm run build
-npm run test
-npm run discord:validate
-npm run discord:plan
+npm test
 npm run bot:validate
+npm run validate:all
 ```
 
-Para ejecutar el bot en modo desarrollo:
-
-```sh
-npm run bot:dev
-```
-
-Para publicar los menus de roles en Windows:
-
-```sh
-npm run roles:publish
-```
+Windows se usa para desarrollo. El probe de systemd devuelve estado no disponible porque `systemctl` y `ss` son propios de Debian.
 
 ## Debian
 
-1. Instala Node.js 20.11 o superior con el metodo que uses para tu servidor.
-2. En el portal de desarrolladores de Discord, habilita el intent privilegiado `Server Members Intent` para el bot.
-3. Copia el proyecto al servidor, incluyendo `package.json`, `package-lock.json`, `config/` y `src/`.
-4. Crea `.env` en la raiz del proyecto.
-5. Ejecuta:
-
 ```sh
+git pull
 npm ci
 npm run build
-npm run test
-npm run discord:validate
-npm run discord:plan
-npm run bot:validate
+npm test
+npm run validate:all
 ```
 
-Para ejecutar el bot manualmente:
+Consulta:
 
-```sh
-npm run bot:start
-```
+- `docs/debian-systemd.md`
+- `docs/palworld-control-helper.md`
+- `docs/discord-permissions.md`
+- `docs/status-panel.md`
+- `docs/guilds.md`
+- `docs/tickets.md`
 
-Para publicar o actualizar los menus de roles en Debian:
+No se modifica systemd automaticamente.
+
+## Publicacion De Paneles
+
+Publicadores individuales:
 
 ```sh
 npm run roles:publish
+npm run guilds:publish
+npm run status:publish
+npm run tickets:publish
 ```
 
-No se crea todavia el servicio `systemd`. Cuando se agregue, debe ejecutar `npm run bot:start` desde la carpeta del proyecto y cargar `.env` de forma segura.
+Publicador agrupado:
 
-## Seguridad operativa
+```sh
+npm run community:publish
+```
 
-- `apply` y `restore` requieren confirmacion explicita.
-- `apply` y `restore` crean respaldos previos.
-- Las operaciones se registran en `logs/` sin credenciales.
-- La API de Discord se usa mediante `discord.js`, que gestiona las respuestas y limites de velocidad del cliente REST.
-- La herramienta evita duplicados buscando canales y categorias existentes por nombre y tipo.
-- El bot no lee mensajes y no requiere `MessageContent`.
-- `state/` contiene identificadores operativos del mensaje persistente y no debe subirse al repositorio.
+No ejecuta `discord:apply`.
+
+## Comandos Slash
+
+Durante desarrollo se registran solo en `DISCORD_GUILD_ID`.
+
+```sh
+npm run commands:register
+npm run commands:list
+npm run commands:delete
+```
+
+La visibilidad en Discord no sustituye las validaciones internas de roles.
+
+## Desactivar Modulos
+
+Usa estas variables:
+
+```txt
+PALWORLD_STATUS_ENABLED=false
+TICKETS_ENABLED=false
+SUGGESTIONS_ENABLED=false
+ANTI_RAID_ENABLED=false
+PALWORLD_RCON_ENABLED=false
+PALWORLD_CONTROL_ENABLED=false
+PALWORLD_RESTART_ENABLED=false
+PLAYER_LINKING_ENABLED=false
+```
+
+## Estado Y Datos
+
+No se versionan:
+
+```txt
+state/
+data/
+transcripts/
+logs/
+backups/
+dist/
+node_modules/
+.env
+```
+
+`docs/` si se versiona.
+
+## Errores Comunes
+
+- `Used disallowed intents`: habilita Server Members Intent en Discord Developer Portal.
+- `El rol mas alto del bot debe estar por encima...`: mueve el rol del bot por encima del rol que debe asignar.
+- `PALWORLD_STATUS_CHANNEL_ID no esta configurado`: completa `.env` o desactiva el modulo.
+- `RCON desactivado`: define `PALWORLD_RCON_ENABLED=true`, puerto y contrasena solo cuando quieras validarlo.

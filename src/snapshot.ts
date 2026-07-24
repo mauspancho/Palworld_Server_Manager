@@ -99,6 +99,9 @@ function snapshotChannel(channel: NonThreadGuildBasedChannel, categoryNamesById:
   if ("userLimit" in channel) {
     base.userLimit = channel.userLimit;
   }
+  if ("availableTags" in channel) {
+    base.availableTags = channel.availableTags.map((tag) => tag.name).sort();
+  }
 
   return base;
 }
@@ -120,6 +123,8 @@ function normalizeChannelType(type: ChannelType): SnapshotChannelType | null {
       return "text";
     case ChannelType.GuildVoice:
       return "voice";
+    case ChannelType.GuildForum:
+      return "forum";
     default:
       return null;
   }

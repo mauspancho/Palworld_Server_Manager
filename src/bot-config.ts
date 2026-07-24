@@ -34,5 +34,8 @@ export function loadBotEnv(rootDir: string): BotEnv {
 }
 
 export function botEnvSecrets(env?: Partial<BotEnv>): string[] {
-  return [env?.DISCORD_BOT_TOKEN ?? process.env.DISCORD_BOT_TOKEN ?? ""].filter(Boolean);
+  return [
+    env?.DISCORD_BOT_TOKEN ?? process.env.DISCORD_BOT_TOKEN ?? "",
+    process.env.PALWORLD_RCON_PASSWORD ?? ""
+  ].filter(Boolean);
 }

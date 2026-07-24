@@ -49,6 +49,61 @@ categories:
         type: text
       - name: "🐛・reportar-problemas"
         type: text
+      - name: "🔎・busqueda-de-pals"
+        type: forum
+        guidelines: "Cada publicacion debe incluir: Pal buscado u ofrecido, nivel aproximado, sexo cuando sea relevante, habilidades pasivas, plataforma, que ofrece o solicita, horario disponible y estado de la solicitud."
+        tags:
+          - Busco
+          - Ubicacion
+          - Crianza
+          - Pasivas
+          - Completado
+      - name: "💱・intercambio-de-pals"
+        type: forum
+        guidelines: "Cada publicacion debe incluir: Pal buscado u ofrecido, nivel aproximado, sexo cuando sea relevante, habilidades pasivas, plataforma, que ofrece o solicita, horario disponible y estado de la solicitud."
+        tags:
+          - Ofrezco
+          - Busco
+          - Intercambio
+          - Xbox
+          - PC-Steam
+          - PlayStation
+          - Cerrado
+      - name: "📨・peticiones-de-pals"
+        type: forum
+        guidelines: "Cada publicacion debe incluir: Pal buscado u ofrecido, nivel aproximado, sexo cuando sea relevante, habilidades pasivas, plataforma, que ofrece o solicita, horario disponible y estado de la solicitud."
+        tags:
+          - Pal especifico
+          - Huevo
+          - Crianza
+          - Pasivas
+          - Urgente
+          - Atendido
+
+  - name: "🏰 GREMIOS"
+    channels:
+      - name: "📜・informacion-de-gremios"
+        type: text
+      - name: "🏰・gremio-1"
+        type: text
+      - name: "🏰・gremio-2"
+        type: text
+      - name: "🏰・gremio-3"
+        type: text
+      - name: "🏰・gremio-4"
+        type: text
+      - name: "🏰・gremio-5"
+        type: text
+      - name: "🔊・gremio-1"
+        type: voice
+      - name: "🔊・gremio-2"
+        type: voice
+      - name: "🔊・gremio-3"
+        type: voice
+      - name: "🔊・gremio-4"
+        type: voice
+      - name: "🔊・gremio-5"
+        type: voice
 
   - name: "🔊 VOZ"
     channels:
@@ -73,4 +128,16 @@ categories:
       - name: "📝・registro-mensajes"
         type: text
       - name: "🤖・configuración-bots"
+        type: text
+
+  - name: "📡 ESTADO"
+    channels:
+      - name: "📡・estado-del-servidor"
+        type: text
+
+  - name: "🎫 SOPORTE"
+    channels:
+      - name: "🎫・crear-ticket"
+        type: text
+      - name: "📋・registro-de-tickets"
         type: text

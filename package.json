@@ -19,7 +19,17 @@
     "bot:dev": "node --watch dist/bot.js",
     "bot:start": "node dist/bot.js",
     "bot:validate": "node dist/bot-validate.js",
-    "roles:publish": "node dist/roles-publish.js"
+    "roles:publish": "node dist/roles-publish.js",
+    "guilds:publish": "node dist/guilds-publish.js",
+    "status:publish": "node dist/status-publish.js",
+    "status:validate": "node dist/status-validate.js",
+    "tickets:publish": "node dist/tickets-publish.js",
+    "rcon:validate": "node dist/rcon-validate.js",
+    "commands:register": "node dist/commands.js register",
+    "commands:delete": "node dist/commands.js delete",
+    "commands:list": "node dist/commands.js list",
+    "community:publish": "node dist/community-publish.js",
+    "validate:all": "node dist/validate-all.js"
   },
   "keywords": [
     "discord",

@@ -1,11 +1,13 @@
-export type DesiredChannelType = "text" | "voice";
-export type SnapshotChannelType = "category" | "text" | "voice";
+export type DesiredChannelType = "text" | "voice" | "forum";
+export type SnapshotChannelType = "category" | "text" | "voice" | "forum";
 export type PermissionOverwriteType = "role" | "member";
 
 export interface DesiredChannel {
   name: string;
   type: DesiredChannelType;
   topic?: string;
+  guidelines?: string;
+  tags?: string[];
 }
 
 export interface DesiredCategory {
@@ -52,6 +54,7 @@ export interface ChannelSnapshot {
   rateLimitPerUser?: number;
   bitrate?: number;
   userLimit?: number;
+  availableTags?: string[];
 }
 
 export interface ServerSnapshot {
@@ -77,6 +80,9 @@ export interface CreateChannelOperation {
   name: string;
   channelType: DesiredChannelType;
   position: number;
+  topic?: string;
+  guidelines?: string;
+  tags?: string[];
 }
 
 export interface MoveChannelOperation {

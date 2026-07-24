@@ -1,0 +1,31 @@
+enabled: true
+categoryName: "🏰 GREMIOS"
+privateChannels: true
+authorizedRoleNames:
+  - Admin
+  - Moderador
+managerRoleNames:
+  - Admin
+  - Moderador
+  - Palworld Server Manager
+guilds:
+  - id: "1"
+    roleName: "Gremio 1"
+    textChannelName: "🏰・gremio-1"
+    voiceChannelName: "🔊・gremio-1"
+  - id: "2"
+    roleName: "Gremio 2"
+    textChannelName: "🏰・gremio-2"
+    voiceChannelName: "🔊・gremio-2"
+  - id: "3"
+    roleName: "Gremio 3"
+    textChannelName: "🏰・gremio-3"
+    voiceChannelName: "🔊・gremio-3"
+  - id: "4"
+    roleName: "Gremio 4"
+    textChannelName: "🏰・gremio-4"
+    voiceChannelName: "🔊・gremio-4"
+  - id: "5"
+    roleName: "Gremio 5"
+    textChannelName: "🏰・gremio-5"
+    voiceChannelName: "🔊・gremio-5"

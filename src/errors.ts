@@ -12,7 +12,9 @@ export function sanitizeSecret(input: unknown, secrets: string[] = []): string {
       text = text.split(secret).join("[REDACTED]");
     }
   }
-  return text.replace(/Bot\s+[A-Za-z0-9._-]+/g, "Bot [REDACTED]");
+  return text
+    .replace(/Bot\s+[A-Za-z0-9._-]+/g, "Bot [REDACTED]")
+    .replace(/PALWORLD_RCON_PASSWORD=[^\s]+/g, "PALWORLD_RCON_PASSWORD=[REDACTED]");
 }
 
 export function userFacingErrorMessage(error: unknown): string {

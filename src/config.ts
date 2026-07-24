@@ -44,8 +44,11 @@ function validateDesiredStructure(value: DesiredStructure): void {
       throw new SafeError(`Categoria invalida en configuracion: ${JSON.stringify(category)}`);
     }
     for (const channel of category.channels) {
-      if (!channel.name || (channel.type !== "text" && channel.type !== "voice")) {
+      if (!channel.name || (channel.type !== "text" && channel.type !== "voice" && channel.type !== "forum")) {
         throw new SafeError(`Canal invalido en categoria ${category.name}.`);
+      }
+      if (channel.tags && (!Array.isArray(channel.tags) || channel.tags.some((tag) => typeof tag !== "string" || tag.length === 0))) {
+        throw new SafeError(`Etiquetas invalidas en canal ${channel.name}.`);
       }
     }
   }

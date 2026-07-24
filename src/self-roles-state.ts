@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { SelfRoleMessageState } from "./self-roles-types.js";
+import { writeJsonAtomic } from "./atomic-json.js";
 
 export function selfRolesConfigPath(rootDir: string): string {
   return path.join(rootDir, "config", "self-roles.yml");
@@ -27,5 +28,5 @@ export async function readSelfRolesMessageState(rootDir: string): Promise<SelfRo
 
 export async function writeSelfRolesMessageState(rootDir: string, state: SelfRoleMessageState): Promise<void> {
   await fs.mkdir(selfRolesStateDir(rootDir), { recursive: true });
-  await fs.writeFile(selfRolesMessageStatePath(rootDir), `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  await writeJsonAtomic(selfRolesMessageStatePath(rootDir), state);
 }

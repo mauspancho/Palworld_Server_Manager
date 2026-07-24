@@ -1,6 +1,7 @@
 import {
   CategoryChannel,
   ChannelType,
+  ForumChannel,
   Guild,
   GuildChannel,
   OverwriteResolvable,
@@ -26,7 +27,7 @@ export async function executeOperations(
         await createCategory(guild, operation.name, operation.position, operation.private, operation.administrativeRoleNames);
         break;
       case "createChannel":
-        await createChannel(guild, operation.categoryName, operation.name, operation.channelType, operation.position);
+        await createChannel(guild, operation);
         break;
       case "moveChannel":
         await moveChannel(guild, operation.channelName, operation.channelType, operation.toCategoryName);
@@ -89,17 +90,17 @@ export async function restoreSnapshot(
   }
 
   for (const channel of snapshot.channels.filter(isRestorableChildChannel)) {
-    const existing = await findChannel(guild, channel.name, channel.type);
+      const existing = await findChannel(guild, channel.name, channel.type);
     const parent = channel.parentName ? await findCategory(guild, channel.parentName) : null;
 
     if (!existing) {
       await logger.log("Creando canal desde respaldo", { channelName: channel.name, type: channel.type });
       await guild.channels.create({
         name: channel.name,
-        type: channel.type === "text" ? ChannelType.GuildText : ChannelType.GuildVoice,
+        type: discordChannelType(channel.type),
         parent: parent?.id,
         position: channel.position,
-        topic: channel.type === "text" ? channel.topic ?? undefined : undefined,
+        topic: channel.type === "text" || channel.type === "forum" ? channel.topic ?? undefined : undefined,
         nsfw: channel.type === "text" ? channel.nsfw : undefined,
         rateLimitPerUser: channel.type === "text" ? channel.rateLimitPerUser : undefined,
         bitrate: channel.type === "voice" ? channel.bitrate : undefined,
@@ -135,25 +136,26 @@ async function createCategory(
 
 async function createChannel(
   guild: Guild,
-  categoryName: string,
-  name: string,
-  channelType: DesiredChannelType,
-  position: number
+  operation: Extract<PlannedOperation, { kind: "createChannel" }>
 ): Promise<void> {
-  if (await findChannel(guild, name, channelType)) {
+  if (await findChannel(guild, operation.name, operation.channelType)) {
     return;
   }
 
-  const category = await findCategory(guild, categoryName);
+  const category = await findCategory(guild, operation.categoryName);
   if (!category) {
-    throw new SafeError(`No existe la categoria "${categoryName}" para crear "${name}".`);
+    throw new SafeError(`No existe la categoria "${operation.categoryName}" para crear "${operation.name}".`);
   }
 
   await guild.channels.create({
-    name,
-    type: channelType === "text" ? ChannelType.GuildText : ChannelType.GuildVoice,
+    name: operation.name,
+    type: discordChannelType(operation.channelType),
     parent: category.id,
-    position,
+    position: operation.position,
+    topic: operation.channelType === "text" || operation.channelType === "forum" ? operation.topic ?? operation.guidelines : undefined,
+    availableTags: operation.channelType === "forum"
+      ? operation.tags?.map((name) => ({ name, moderated: false }))
+      : undefined,
     reason: "discord-structure apply"
   });
 }
@@ -183,12 +185,12 @@ async function findCategory(guild: Guild, name: string): Promise<CategoryChannel
   return found ?? null;
 }
 
-async function findChannel(guild: Guild, name: string, channelType: DesiredChannelType): Promise<TextChannel | VoiceChannel | null> {
-  const expected = channelType === "text" ? ChannelType.GuildText : ChannelType.GuildVoice;
+async function findChannel(guild: Guild, name: string, channelType: DesiredChannelType): Promise<TextChannel | VoiceChannel | ForumChannel | null> {
+  const expected = discordChannelType(channelType);
   const channels = await guild.channels.fetch();
   const found = channels.find(
-    (channel): channel is TextChannel | VoiceChannel =>
-      (channel?.type === ChannelType.GuildText || channel?.type === ChannelType.GuildVoice)
+    (channel): channel is TextChannel | VoiceChannel | ForumChannel =>
+      (channel?.type === ChannelType.GuildText || channel?.type === ChannelType.GuildVoice || channel?.type === ChannelType.GuildForum)
       && channel.type === expected
       && channel.name === name
   );
@@ -233,5 +235,15 @@ function permissionsFromNames(names: string[]): PermissionsBitField {
 function isRestorableChildChannel(
   channel: ServerSnapshot["channels"][number]
 ): channel is ServerSnapshot["channels"][number] & { type: Extract<SnapshotChannelType, DesiredChannelType> } {
-  return channel.type === "text" || channel.type === "voice";
+  return channel.type === "text" || channel.type === "voice" || channel.type === "forum";
+}
+
+function discordChannelType(channelType: DesiredChannelType): ChannelType.GuildText | ChannelType.GuildVoice | ChannelType.GuildForum {
+  if (channelType === "voice") {
+    return ChannelType.GuildVoice;
+  }
+  if (channelType === "forum") {
+    return ChannelType.GuildForum;
+  }
+  return ChannelType.GuildText;
 }

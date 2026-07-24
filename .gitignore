@@ -4,4 +4,6 @@ dist/
 backups/
 logs/
 state/
+data/
+transcripts/
 *.log

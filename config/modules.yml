@@ -1,0 +1,14 @@
+status:
+  enabledByEnv: PALWORLD_STATUS_ENABLED
+tickets:
+  enabledByEnv: TICKETS_ENABLED
+suggestions:
+  enabledByEnv: SUGGESTIONS_ENABLED
+events:
+  timezoneEnv: BOT_TIMEZONE
+antiRaid:
+  enabledByEnv: ANTI_RAID_ENABLED
+palworldControl:
+  enabledByEnv: PALWORLD_CONTROL_ENABLED
+playerLinking:
+  enabledByEnv: PLAYER_LINKING_ENABLED

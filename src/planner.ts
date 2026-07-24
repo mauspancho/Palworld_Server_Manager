@@ -33,9 +33,15 @@ export function createPlan(current: ServerSnapshot, desired: DesiredStructure): 
     }
 
     desiredCategory.channels.forEach((desiredChannel, channelIndex) => {
-      const matchingChannel = current.channels.find(
-        (channel) => channel.name === desiredChannel.name && channel.type === desiredChannel.type
-      );
+      const sameNameChannel = current.channels.find((channel) => channel.name === desiredChannel.name && channel.type !== "category");
+      const matchingChannel = sameNameChannel?.type === desiredChannel.type ? sameNameChannel : undefined;
+
+      if (sameNameChannel && sameNameChannel.type !== desiredChannel.type) {
+        warnings.push(
+          `El canal "${desiredChannel.name}" existe como ${sameNameChannel.type}, pero la configuracion espera ${desiredChannel.type}. No se convertira ni duplicara; corrige manualmente.`
+        );
+        return;
+      }
 
       if (!matchingChannel) {
         operations.push({
@@ -43,7 +49,10 @@ export function createPlan(current: ServerSnapshot, desired: DesiredStructure): 
           categoryName: desiredCategory.name,
           name: desiredChannel.name,
           channelType: desiredChannel.type,
-          position: channelIndex
+          position: channelIndex,
+          topic: desiredChannel.topic,
+          guidelines: desiredChannel.guidelines,
+          tags: desiredChannel.tags
         });
         return;
       }
