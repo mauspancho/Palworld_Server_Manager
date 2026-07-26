@@ -7,6 +7,7 @@ Herramienta multiplataforma para administrar Discord y automatizaciones comunita
 - CLI administrativa: `validate`, `list`, `backup`, `plan`, `apply`, `restore`.
 - Bot permanente: bienvenida, DM de bienvenida, registro de entradas y asignacion segura de `MEMBER_ROLE_ID`.
 - Aceptacion de reglas: botones persistentes `Aceptar reglas` y `Rechazar reglas`, rol pendiente opcional y acceso al chat general solo tras aceptar.
+- Canales informativos: permisos de solo lectura para bienvenida, reglas, anuncios, datos del servidor y seleccion de roles, con reparacion administrativa y proteccion secundaria.
 - Self-roles: menus persistentes en `ROLES_CHANNEL_ID`.
 - Gremios: roles y canales privados por gremio, mas comandos `/gremio`.
 - Estado Palworld: panel persistente, `/estado` y alertas por cambio.
@@ -86,9 +87,10 @@ Intents requeridos:
 ```txt
 Guilds
 GuildMembers
+GuildMessages
 ```
 
-No se usa `MessageContent` por defecto.
+No se usa `MessageContent`. El bot no lee contenido de mensajes; `GuildMessages` se usa solo para detectar y retirar mensajes no autorizados en canales informativos.
 
 Permisos recomendados:
 
@@ -98,6 +100,7 @@ SendMessages
 ReadMessageHistory
 ManageChannels
 ManageRoles
+ManageMessages
 UseApplicationCommands
 CreatePublicThreads
 CreatePrivateThreads
@@ -137,6 +140,29 @@ Para restringir canales antes de aceptar, configura permisos de Discord con role
 
 El bot no intenta controlar acceso ocultando botones; el acceso real depende de roles y permisos de Discord.
 
+## Canales Informativos
+
+Los canales `bienvenida`, `reglas`, `anuncios`, `datos-del-servidor` y `elige-tus-roles` deben ser de solo lectura para usuarios normales y miembros.
+
+Permisos aplicados a `@everyone`, `MEMBER_ROLE_ID` y `PENDING_MEMBER_ROLE_ID`:
+
+```txt
+Allow: ViewChannel, ReadMessageHistory
+Deny: SendMessages, SendMessagesInThreads, CreatePublicThreads, CreatePrivateThreads, AttachFiles, SendVoiceMessages, UseApplicationCommands, MentionEveryone, ManageMessages, ManageThreads, ManageChannels, CreateInstantInvite
+```
+
+`Admin`, `Palworld Server Manager`, `Moderador`, `Bots` y el bot conservan permisos de publicacion/gestion necesarios. La reparacion no elimina canales, roles ni excepciones manuales ajenas a esos targets.
+
+Para reparar permisos:
+
+```sh
+npm run info:repair
+```
+
+Tambien puedes registrar comandos y usar `/informacion reparar` desde Discord con un rol autorizado.
+
+Si un usuario normal logra escribir en uno de esos canales por una configuracion incorrecta, el bot intentara borrar el mensaje, avisar por DM y registrar el evento en `MEMBER_LOG_CHANNEL_ID`. No aplica sanciones automaticas.
+
 ## Scripts
 
 ```sh
@@ -156,6 +182,7 @@ npm run guilds:publish
 npm run status:publish
 npm run status:validate
 npm run tickets:publish
+npm run info:repair
 npm run rcon:validate
 npm run commands:register
 npm run commands:delete
@@ -164,7 +191,7 @@ npm run community:publish
 npm run validate:all
 ```
 
-`discord:apply`, `roles:publish`, `guilds:publish`, `status:publish`, `tickets:publish`, `commands:register`, `commands:delete` y `community:publish` modifican Discord. Revisalos antes de ejecutarlos.
+`discord:apply`, `roles:publish`, `guilds:publish`, `status:publish`, `tickets:publish`, `info:repair`, `commands:register`, `commands:delete` y `community:publish` modifican Discord. Revisalos antes de ejecutarlos.
 
 ## Windows
 
@@ -173,6 +200,7 @@ npm install
 npm run build
 npm test
 npm run bot:validate
+npm run info:repair
 npm run validate:all
 ```
 
@@ -186,6 +214,7 @@ npm ci
 npm run build
 npm test
 npm run validate:all
+npm run info:repair
 ```
 
 Consulta:

@@ -95,6 +95,13 @@ export function slashCommandDefinitions(): RESTPostAPIChatInputApplicationComman
         { type: ApplicationCommandOptionType.Subcommand, name: "liberar", description: "Liberar usuario", options: [{ type: ApplicationCommandOptionType.User, name: "usuario", description: "Usuario", required: true }] }
       ]
     },
+    {
+      name: "informacion",
+      description: "Administrar canales informativos",
+      options: [
+        { type: ApplicationCommandOptionType.Subcommand, name: "reparar", description: "Reparar permisos de canales informativos" }
+      ]
+    },
     { name: "vincular", description: "Generar codigo temporal de vinculacion" }
   ];
 }

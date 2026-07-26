@@ -7,6 +7,9 @@ import {
 } from "discord.js";
 import path from "node:path";
 import type { BotEnv } from "./bot-config.js";
+import { botEnvSecrets } from "./bot-config.js";
+import { loadDesiredStructure } from "./config.js";
+import { sanitizeSecret } from "./errors.js";
 import { adminOrModeratorRoleNames, adminRoleNames, memberHasAnyRole } from "./command-permissions.js";
 import { booleanEnv, optionalEnv } from "./env-utils.js";
 import { loadGuildsConfig } from "./guilds-config.js";
@@ -19,6 +22,8 @@ import { createLinkCode } from "./player-linking.js";
 import { buildTicketKindMenu, createTicketButtonId } from "./tickets-panel.js";
 import { applySuggestionVote, isValidSuggestionStatus, suggestionVoteCounts, type SuggestionRecord } from "./suggestions-logic.js";
 import { readJsonFile, writeJsonAtomic } from "./atomic-json.js";
+import { formatInformationRepairResult, repairInformationPermissions } from "./info-permissions.js";
+import { OperationLogger } from "./logger.js";
 
 export async function handleBotInteraction(interaction: Interaction, env: BotEnv, rootDir: string): Promise<boolean> {
   if (!interaction.guild || interaction.guildId !== env.DISCORD_GUILD_ID) {
@@ -63,6 +68,9 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
     case "cuarentena":
       await requireRolesOrReply(interaction, adminOrModeratorRoleNames()) && await interaction.reply({ content: booleanEnv("ANTI_RAID_ENABLED", false) ? "Accion de cuarentena registrada." : "Anti-raid desactivado.", flags: MessageFlags.Ephemeral });
       return;
+    case "informacion":
+      await handleInformationCommand(interaction, env, rootDir);
+      return;
     case "vincular":
       if (!booleanEnv("PLAYER_LINKING_ENABLED", false)) {
         await interaction.reply({ content: "Vinculacion desactivada.", flags: MessageFlags.Ephemeral });
@@ -73,6 +81,39 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
         await interaction.reply({ content: `Codigo temporal: ${link.code}. Expira en 10 minutos.`, flags: MessageFlags.Ephemeral });
       }
       return;
+  }
+}
+
+async function handleInformationCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  if (!(await requireRolesOrReply(interaction, adminOrModeratorRoleNames()))) {
+    return;
+  }
+  const sub = interaction.options.getSubcommand();
+  if (sub !== "reparar") {
+    await interaction.reply({ content: "Subcomando no reconocido.", flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const botUserId = interaction.client.user?.id;
+  if (!botUserId || !interaction.guild) {
+    await interaction.editReply("No se pudo identificar el bot o el servidor.");
+    return;
+  }
+  try {
+    const botMember = await interaction.guild.members.fetch(botUserId);
+    const desired = await loadDesiredStructure(path.join(rootDir, "config", "server-structure.yml"));
+    const logger = new OperationLogger(path.join(rootDir, "logs"), botEnvSecrets(env));
+    const result = await repairInformationPermissions(interaction.guild, botMember, env, desired, {
+      rootDir,
+      reason: "/informacion reparar",
+      log: (message, details) => logger.log(message, details)
+    });
+    await interaction.editReply(formatInformationRepairResult(result));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await interaction.editReply(`No se pudo reparar permisos informativos: ${sanitizeSecret(message, botEnvSecrets(env))}`);
+    throw error;
   }
 }
 

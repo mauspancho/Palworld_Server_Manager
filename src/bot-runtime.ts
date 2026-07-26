@@ -6,8 +6,10 @@ import {
   Partials,
   TextChannel
 } from "discord.js";
+import path from "node:path";
 import type { BotEnv } from "./bot-config.js";
 import { botEnvSecrets } from "./bot-config.js";
+import { loadDesiredStructure } from "./config.js";
 import { sanitizeSecret } from "./errors.js";
 import { buildDirectWelcomeMessage, buildWelcomeEmbed, buildWelcomeMessageInput } from "./bot-message.js";
 import { validateBotConfiguration } from "./bot-validation.js";
@@ -16,6 +18,7 @@ import { loadSelfRolesConfig } from "./self-roles-config.js";
 import { selfRolesConfigPath } from "./self-roles-state.js";
 import { validateExistingSelfRoles } from "./self-roles-validation.js";
 import { handleBotInteraction } from "./bot-interactions.js";
+import { handleInformationChannelMessage, validateInformationPermissionConfiguration } from "./info-permissions.js";
 import {
   assignPendingRoleIfConfigured,
   handleRulesButtonInteraction,
@@ -39,7 +42,7 @@ const registeredClients = new WeakSet<Client>();
 
 export function createBotClient(): Client {
   return new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],
     partials: [Partials.GuildMember]
   });
 }
@@ -54,8 +57,10 @@ export async function validateBotStartup(client: Client, env: BotEnv, rootDir = 
   const result = await validateBotConfiguration(guild, botMember, env);
   const selfRolesConfig = await loadSelfRolesConfig(selfRolesConfigPath(rootDir));
   const selfRolesResult = await validateExistingSelfRoles(guild, botMember, env, selfRolesConfig);
-  const errors = [...result.errors, ...selfRolesResult.errors];
-  const warnings = [...result.warnings, ...selfRolesResult.warnings];
+  const desired = await loadDesiredStructure(path.join(rootDir, "config", "server-structure.yml"));
+  const infoPermissionResult = await validateInformationPermissionConfiguration(guild, botMember, desired);
+  const errors = [...result.errors, ...selfRolesResult.errors, ...infoPermissionResult.errors];
+  const warnings = [...result.warnings, ...selfRolesResult.warnings, ...infoPermissionResult.warnings];
   for (const warning of warnings) {
     safeLog(`Advertencia: ${warning}`);
   }
@@ -117,6 +122,12 @@ export function registerBotHandlers(client: Client, env: BotEnv, options: BotRun
     }
     await handleSelfRoleInteraction(interaction, env, options.rootDir ?? process.cwd()).catch((error) => {
       safeError("Error procesando self-role.", error, env);
+    });
+  });
+
+  client.on("messageCreate", async (message) => {
+    await handleInformationChannelMessage(message, env, options.rootDir ?? process.cwd()).catch((error) => {
+      safeError("Error procesando proteccion de canal informativo.", error, env);
     });
   });
 }
