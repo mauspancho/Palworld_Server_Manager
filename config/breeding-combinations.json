@@ -1,0 +1,3043 @@
+{
+  "schemaVersion": 1,
+  "sources": {
+    "GAMES_GG": {
+      "label": "GAMES.GG",
+      "url": "https://games.gg/es/palworld/guides/gu%C3%ADa-palworld-10-mejores-combinaciones-de-crianza/",
+      "updatedAt": "2026-07-15",
+      "verificationStatus": "SOURCE_MARKED_1_0"
+    },
+    "VANDAL": {
+      "label": "Vandal",
+      "url": "https://vandal.elespanol.com/guias/guia-palworld-trucos-consejos-y-secretos/crianza-y-fusiones",
+      "updatedAt": "2026-06-12",
+      "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION"
+    }
+  },
+  "pals": [
+    {
+      "id": "aegidron",
+      "name": "Aegidron",
+      "categories": [
+        "World Tree"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Aegidron",
+          "parent1": {
+            "name": "Dandilord",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Shaolong",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Aegidron",
+          "parent1": {
+            "name": "Frostallion Noct",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dandilord",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Aegidron",
+          "parent1": {
+            "name": "Orserk",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Jetragon",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Aegidron",
+          "parent1": {
+            "name": "Silvance",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dandilord",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "anubis",
+      "name": "Anubis",
+      "categories": [
+        "Trabajador de base"
+      ],
+      "aliases": [
+        "AnubisAnubis"
+      ],
+      "combinations": [
+        {
+          "target": "Anubis",
+          "parent1": {
+            "name": "Blazamut",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dualith",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Anubis",
+          "parent1": {
+            "name": "Bushi Noct",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Orserk",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Anubis",
+          "parent1": {
+            "name": "Dualith Noct",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Whalaska",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "azurobe-cryst",
+      "name": "Azurobe Cryst",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Azurobe Cryst",
+          "parent1": {
+            "name": "Azurobe",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Frostplume",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "beegarde",
+      "name": "Beegarde",
+      "categories": [
+        "Principiante"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Beegarde",
+          "parent1": {
+            "name": "Nox",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Hoodle",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Beegarde",
+          "parent1": {
+            "name": "Penking",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Cinnamoth",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Beegarde",
+          "parent1": {
+            "name": "Polapup",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Jolthog",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bellanoir-libero",
+      "name": "Bellanoir Libero",
+      "categories": [
+        "Misma especie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Bellanoir Libero",
+          "parent1": {
+            "name": "Bellanoir Libero",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Bellanoir Libero",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "blazamut",
+      "name": "Blazamut",
+      "categories": [
+        "Especial"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Blazamut",
+          "parent1": {
+            "name": "Blazamut",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Suzaku Aqua",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "blazamut-ryu",
+      "name": "Blazamut Ryu",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Blazamut Ryu",
+          "parent1": {
+            "name": "Blazamut Ryu",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Blazamut Ryu",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "blazehowl",
+      "name": "Blazehowl",
+      "categories": [
+        "Principiante"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Blazehowl",
+          "parent1": {
+            "name": "Celaray",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Surfent",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Blazehowl",
+          "parent1": {
+            "name": "Elphidran",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Melpaca",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Blazehowl",
+          "parent1": {
+            "name": "Penking",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dumud",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Blazehowl",
+          "parent1": {
+            "name": "Penking",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Mozzarina",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "blazehowl-noct",
+      "name": "Blazehowl Noct",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Blazehowl Noct",
+          "parent1": {
+            "name": "Blazehowl",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Felbat",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "broncherry-aqua",
+      "name": "Broncherry Aqua",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Broncherry Aqua",
+          "parent1": {
+            "name": "Broncherry",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Fuack",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bushi-noct",
+      "name": "Bushi Noct",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Bushi Noct",
+          "parent1": {
+            "name": "Bushi",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Sootseer",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "caprity-noct",
+      "name": "Caprity Noct",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Caprity Noct",
+          "parent1": {
+            "name": "Caprity",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Tarantriss",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "carnibora",
+      "name": "Carnibora",
+      "categories": [
+        "World Tree"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Carnibora",
+          "parent1": {
+            "name": "Pipperai",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Pierdon Cyst",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Carnibora",
+          "parent1": {
+            "name": "Rooby",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dupin",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Carnibora",
+          "parent1": {
+            "name": "Tanzee",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Astegon",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "celaray-lux",
+      "name": "Celaray Lux",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Celaray Lux",
+          "parent1": {
+            "name": "Celaray",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Univolt",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "celesdir-noct",
+      "name": "Celesdir Noct",
+      "categories": [
+        "World Tree"
+      ],
+      "aliases": [
+        "Celsdir Noct",
+        "Celesdir Noct"
+      ],
+      "combinations": [
+        {
+          "target": "Celesdir Noct",
+          "parent1": {
+            "name": "Kitsun",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Celesdir",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "chillet-ignis",
+      "name": "Chillet Ignis",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Chillet Ignis",
+          "parent1": {
+            "name": "Chillet",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Arsox",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "croajiro-noct",
+      "name": "Croajiro Noct",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Croajiro Noct",
+          "parent1": {
+            "name": "Croajiro",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Bushi Noct",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cryolinx-terra",
+      "name": "Cryolinx Terra",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Cryolinx Terra",
+          "parent1": {
+            "name": "Cryolinx",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dazemu",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dazzi-noct",
+      "name": "Dazzi Noct",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Dazzi Noct",
+          "parent1": {
+            "name": "Dazzi",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Omascul",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dinossom-lux",
+      "name": "Dinossom Lux",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [
+        "Dinosoom Lux"
+      ],
+      "combinations": [
+        {
+          "target": "Dinossom Lux",
+          "parent1": {
+            "name": "Dinossom",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Rayhound",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dualith-noct",
+      "name": "Dualith Noct",
+      "categories": [
+        "World Tree"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Dualith Noct",
+          "parent1": {
+            "name": "Sootseer",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dualith",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dumud-gild",
+      "name": "Dumud Gild",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Dumud Gild",
+          "parent1": {
+            "name": "Dumud",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Eikthyrdeer",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dupin",
+      "name": "Dupin",
+      "categories": [
+        "World Tree"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Dupin",
+          "parent1": {
+            "name": "Ghangler",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Neptilius",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Dupin",
+          "parent1": {
+            "name": "Sekhmet",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Neptilius",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Dupin",
+          "parent1": {
+            "name": "Xenogard",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Shaolong",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "eidrolon",
+      "name": "Eidrolon",
+      "categories": [
+        "World Tree"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Eidrolon",
+          "parent1": {
+            "name": "Silvegis",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Jetragon",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "eikthyrdeer-terra",
+      "name": "Eikthyrdeer Terra",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Eikthyrdeer Terra",
+          "parent1": {
+            "name": "Eikthyrdeer",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Hangyu",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "elphidran-aqua",
+      "name": "Elphidran Aqua",
+      "categories": [
+        "Exclusivo de crianza"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Elphidran Aqua",
+          "parent1": {
+            "name": "Surfent",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Elphidran",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "faleris",
+      "name": "Faleris",
+      "categories": [
+        "Especial"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Faleris",
+          "parent1": {
+            "name": "Vanwyrm",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Anubis",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "faleris-aqua",
+      "name": "Faleris Aqua",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Faleris Aqua",
+          "parent1": {
+            "name": "Jormuntide",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Faleris",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fenglope-lux",
+      "name": "Fenglope Lux",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Fenglope Lux",
+          "parent1": {
+            "name": "Fenglope",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Azurmane",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "finsider-ignis",
+      "name": "Finsider Ignis",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Finsider Ignis",
+          "parent1": {
+            "name": "Finsider",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Gobfin Ignis",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "foxparks-cryst",
+      "name": "Foxparks Cryst",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Foxparks Cryst",
+          "parent1": {
+            "name": "Foxparks",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Foxcicle",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "frostallion",
+      "name": "Frostallion",
+      "categories": [
+        "Misma especie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Frostallion",
+          "parent1": {
+            "name": "Frostallion",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Frostallion",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "frostallion-noct",
+      "name": "Frostallion Noct",
+      "categories": [
+        "Exclusivo de crianza"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Frostallion Noct",
+          "parent1": {
+            "name": "Helzephyr",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Frostallion",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fuack-ignis",
+      "name": "Fuack Ignis",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Fuack Ignis",
+          "parent1": {
+            "name": "Fuack",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Flambelle",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ghangler-ignis",
+      "name": "Ghangler Ignis",
+      "categories": [
+        "Trabajador de base"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Ghangler Ignis",
+          "parent1": {
+            "name": "Sootseer",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Ghangler",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG",
+            "VANDAL"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15",
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "gobfin-ignis",
+      "name": "Gobfin Ignis",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Gobfin Ignis",
+          "parent1": {
+            "name": "Gobfin",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Rooby",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "gorirat-terra",
+      "name": "Gorirat Terra",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Gorirat Terra",
+          "parent1": {
+            "name": "Gorirat",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Kikit",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "grizzbolt",
+      "name": "Grizzbolt",
+      "categories": [
+        "Especial"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Grizzbolt",
+          "parent1": {
+            "name": "Mossanda",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Rayhound",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hangyu-cryst",
+      "name": "Hangyu Cryst",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [
+        "Hangy Cryst"
+      ],
+      "combinations": [
+        {
+          "target": "Hangyu Cryst",
+          "parent1": {
+            "name": "Hangyu",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Swee",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hartalis",
+      "name": "Hartalis",
+      "categories": [
+        "Misma especie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Hartalis",
+          "parent1": {
+            "name": "Hartalis",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Hartalis",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "helzephyr-lux",
+      "name": "Helzephyr Lux",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Helzephyr Lux",
+          "parent1": {
+            "name": "Helzephyr",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Beakon",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ice-kingpaca",
+      "name": "Ice Kingpaca",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Ice Kingpaca",
+          "parent1": {
+            "name": "Kingpaca",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Reindrix",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ice-reptyro",
+      "name": "Ice Reptyro",
+      "categories": [
+        "Exclusivo de crianza"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Ice Reptyro",
+          "parent1": {
+            "name": "Foxcicle",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Reptyro",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "incineram-noct",
+      "name": "Incineram Noct",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Incineram Noct",
+          "parent1": {
+            "name": "Incineram",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Maraith",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jetragon",
+      "name": "Jetragon",
+      "categories": [
+        "Misma especie"
+      ],
+      "aliases": [
+        "Jetdragon"
+      ],
+      "combinations": [
+        {
+          "target": "Jetragon",
+          "parent1": {
+            "name": "Jetragon",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Jetragon",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jolthog-cryst",
+      "name": "Jolthog Cryst",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Jolthog Cryst",
+          "parent1": {
+            "name": "Pengullet",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Jolthog",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jormuntide-ignis",
+      "name": "Jormuntide Ignis",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Jormuntide Ignis",
+          "parent1": {
+            "name": "Jormuntide Ignis",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Jormuntide Ignis",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "katress-ignis",
+      "name": "Katress Ignis",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Katress Ignis",
+          "parent1": {
+            "name": "Katress",
+            "gender": "FEMALE"
+          },
+          "parent2": {
+            "name": "Wixen",
+            "gender": "MALE"
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kelpsea-ignis",
+      "name": "Kelpsea Ignis",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Kelpsea Ignis",
+          "parent1": {
+            "name": "Kelpsea",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Flopie",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "killamari-primo",
+      "name": "Killamari Primo",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Killamari Primo",
+          "parent1": {
+            "name": "Killamari",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Ribbuny",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kitsun-noct",
+      "name": "Kitsun Noct",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Kitsun Noct",
+          "parent1": {
+            "name": "Kitsun",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Nyafia",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "knocklem-ignis",
+      "name": "Knocklem Ignis",
+      "categories": [
+        "World Tree"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Knocklem Ignis",
+          "parent1": {
+            "name": "Ragnahawk",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Knocklem",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "leezpunk-ignis",
+      "name": "Leezpunk Ignis",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Leezpunk Ignis",
+          "parent1": {
+            "name": "Leezpunk",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Flambelle",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "loupmoon-cryst",
+      "name": "Loupmoon Cryst",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Loupmoon Cryst",
+          "parent1": {
+            "name": "Loupmoon",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Sweepa",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lyleen",
+      "name": "Lyleen",
+      "categories": [
+        "Especial"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Lyleen",
+          "parent1": {
+            "name": "Mossanda",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Petallia",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lyleen-noct",
+      "name": "Lyleen Noct",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Lyleen Noct",
+          "parent1": {
+            "name": "Lyleen",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Menasting",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mammorest-cryst",
+      "name": "Mammorest Cryst",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Mammorest Cryst",
+          "parent1": {
+            "name": "Mammorest",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Wumpo",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mau-cryst",
+      "name": "Mau Cryst",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Mau Cryst",
+          "parent1": {
+            "name": "Mau",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Pengullet",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "menasting-terra",
+      "name": "Menasting Terra",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Menasting Terra",
+          "parent1": {
+            "name": "Menasting",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Knocklem",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mossanda-lux",
+      "name": "Mossanda Lux",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Mossanda Lux",
+          "parent1": {
+            "name": "Mossanda",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Grizzbolt",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "necromus",
+      "name": "Necromus",
+      "categories": [
+        "Misma especie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Necromus",
+          "parent1": {
+            "name": "Necromus",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Necromus",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "neptilius",
+      "name": "Neptilius",
+      "categories": [
+        "Misma especie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Neptilius",
+          "parent1": {
+            "name": "Neptilius",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Neptilius",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "orserk",
+      "name": "Orserk",
+      "categories": [
+        "Especial"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Orserk",
+          "parent1": {
+            "name": "Relaxaurus",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Grizzbolt",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "paladius",
+      "name": "Paladius",
+      "categories": [
+        "Misma especie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Paladius",
+          "parent1": {
+            "name": "Paladius",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Paladius",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "palumba",
+      "name": "Palumba",
+      "categories": [
+        "Principiante"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Palumba",
+          "parent1": {
+            "name": "Penking",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Blazamut",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Palumba",
+          "parent1": {
+            "name": "Vanwyrm",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Wumpo",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Palumba",
+          "parent1": {
+            "name": "Yakumo",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dualith Noct",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pengullet-lux",
+      "name": "Pengullet Lux",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Pengullet Lux",
+          "parent1": {
+            "name": "Pengullet",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Sparkit",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "penking-lux",
+      "name": "Penking Lux",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Penking Lux",
+          "parent1": {
+            "name": "Penking",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Rayhound",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pyrin-noct",
+      "name": "Pyrin Noct",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Pyrin Noct",
+          "parent1": {
+            "name": "Pyrin",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Katress",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "quivern-botan",
+      "name": "Quivern Botan",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Quivern Botan",
+          "parent1": {
+            "name": "Quivern",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Lullu",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "relaxaurus-lux",
+      "name": "Relaxaurus Lux",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Relaxaurus Lux",
+          "parent1": {
+            "name": "Relaxaurus",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Sparkit",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "renjishi",
+      "name": "Renjishi",
+      "categories": [
+        "Trabajador de base"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Renjishi",
+          "parent1": {
+            "name": "Anubis",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Hartalis",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Renjishi",
+          "parent1": {
+            "name": "Dualith",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dandilord",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Renjishi",
+          "parent1": {
+            "name": "Roujay",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Shaolong",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Renjishi",
+          "parent1": {
+            "name": "Xenolord",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Paladius",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ribbuny-botan",
+      "name": "Ribbuny Botan",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Ribbuny Botan",
+          "parent1": {
+            "name": "Bristla",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Ribbuny",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "robinquill-terra",
+      "name": "Robinquill Terra",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [
+        "Ronbiquill Terra"
+      ],
+      "combinations": [
+        {
+          "target": "Robinquill Terra",
+          "parent1": {
+            "name": "Robinquill",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Fuddler",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sekhmet",
+      "name": "Sekhmet",
+      "categories": [
+        "Trabajador de base"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Sekhmet",
+          "parent1": {
+            "name": "Kitsun",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dandilord",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Sekhmet",
+          "parent1": {
+            "name": "Mossanda Lux",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Eidrolon",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Sekhmet",
+          "parent1": {
+            "name": "Tropicaw",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Flaracle",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Sekhmet",
+          "parent1": {
+            "name": "Vanwyrm",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Silvance",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "shadowbeak",
+      "name": "Shadowbeak",
+      "categories": [
+        "Especial"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Shadowbeak",
+          "parent1": {
+            "name": "Kitsun",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Astegon",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "shroomer-noct",
+      "name": "Shroomer Noct",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Shroomer Noct",
+          "parent1": {
+            "name": "Shroomer",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Rayhound",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "surfent-terra",
+      "name": "Surfent Terra",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Surfent Terra",
+          "parent1": {
+            "name": "Surfent",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Dumud",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "suzaku-aqua",
+      "name": "Suzaku Aqua",
+      "categories": [
+        "Exclusivo de crianza"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Suzaku Aqua",
+          "parent1": {
+            "name": "Jormuntide",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Suzaku",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "turtacle-terra",
+      "name": "Turtacle Terra",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Turtacle Terra",
+          "parent1": {
+            "name": "Turtacle",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Digtoise",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "vanwyrm-cryst",
+      "name": "Vanwyrm Cryst",
+      "categories": [
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Vanwyrm Cryst",
+          "parent1": {
+            "name": "Vanwyrm",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Foxcicle",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "warsect-terra",
+      "name": "Warsect Terra",
+      "categories": [
+        "Feybreak"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Warsect Terra",
+          "parent1": {
+            "name": "Warsect",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Digtoise",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "whalaska-ignis",
+      "name": "Whalaska Ignis",
+      "categories": [
+        "Tides of Terraria"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Whalaska Ignis",
+          "parent1": {
+            "name": "Whalaska",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Chillet Ignis",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wixen-noct",
+      "name": "Wixen Noct",
+      "categories": [
+        "Sakurajima"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Wixen Noct",
+          "parent1": {
+            "name": "Katress",
+            "gender": "MALE"
+          },
+          "parent2": {
+            "name": "Wixen",
+            "gender": "FEMALE"
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wumpo",
+      "name": "Wumpo",
+      "categories": [
+        "Principiante",
+        "Trabajador de base"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Wumpo",
+          "parent1": {
+            "name": "Incineram",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Elizabee",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Wumpo",
+          "parent1": {
+            "name": "Mossanda",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Cinnamoth",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Wumpo",
+          "parent1": {
+            "name": "Penking",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Sweepa",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wumpo-botan",
+      "name": "Wumpo Botan",
+      "categories": [
+        "World Tree",
+        "Subespecie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Wumpo Botan",
+          "parent1": {
+            "name": "Aegidron",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Wumpo",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Wumpo Botan",
+          "parent1": {
+            "name": "Dupin",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Frostallion",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Wumpo Botan",
+          "parent1": {
+            "name": "Roujay",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Silvance",
+            "gender": null
+          },
+          "sources": [
+            "GAMES_GG"
+          ],
+          "verificationStatus": "SOURCE_MARKED_1_0",
+          "sourceUpdatedAt": "2026-07-15",
+          "sourceUpdatedAtBySource": {
+            "GAMES_GG": "2026-07-15"
+          }
+        },
+        {
+          "target": "Wumpo Botan",
+          "parent1": {
+            "name": "Wumpo",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Cinnamoth",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xenolord",
+      "name": "Xenolord",
+      "categories": [
+        "Misma especie"
+      ],
+      "aliases": [],
+      "combinations": [
+        {
+          "target": "Xenolord",
+          "parent1": {
+            "name": "Xenolord",
+            "gender": null
+          },
+          "parent2": {
+            "name": "Xenolord",
+            "gender": null
+          },
+          "sources": [
+            "VANDAL"
+          ],
+          "verificationStatus": "LEGACY_REQUIRES_1_0_VERIFICATION",
+          "sourceUpdatedAt": "2026-06-12",
+          "sourceUpdatedAtBySource": {
+            "VANDAL": "2026-06-12"
+          }
+        }
+      ]
+    }
+  ]
+}

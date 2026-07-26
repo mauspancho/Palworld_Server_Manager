@@ -24,12 +24,17 @@ import { applySuggestionVote, isValidSuggestionStatus, suggestionVoteCounts, typ
 import { readJsonFile, writeJsonAtomic } from "./atomic-json.js";
 import { formatInformationRepairResult, repairInformationPermissions } from "./info-permissions.js";
 import { OperationLogger } from "./logger.js";
+import { handleBreedingInteraction } from "./breeding-interactions.js";
+import { publishBreedingPanel } from "./breeding-publisher.js";
 
 export async function handleBotInteraction(interaction: Interaction, env: BotEnv, rootDir: string): Promise<boolean> {
   if (!interaction.guild || interaction.guildId !== env.DISCORD_GUILD_ID) {
     return false;
   }
   if (interaction.user.bot) {
+    return true;
+  }
+  if (await handleBreedingInteraction(interaction, env, rootDir)) {
     return true;
   }
   if (interaction.isChatInputCommand()) {
@@ -71,6 +76,9 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
     case "informacion":
       await handleInformationCommand(interaction, env, rootDir);
       return;
+    case "crianza-panel":
+      await handleBreedingPanelCommand(interaction, env, rootDir);
+      return;
     case "vincular":
       if (!booleanEnv("PLAYER_LINKING_ENABLED", false)) {
         await interaction.reply({ content: "Vinculacion desactivada.", flags: MessageFlags.Ephemeral });
@@ -81,6 +89,34 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
         await interaction.reply({ content: `Codigo temporal: ${link.code}. Expira en 10 minutos.`, flags: MessageFlags.Ephemeral });
       }
       return;
+  }
+}
+
+async function handleBreedingPanelCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  if (!(await requireRolesOrReply(interaction, adminOrModeratorRoleNames()))) {
+    return;
+  }
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const botUserId = interaction.client.user?.id;
+  if (!botUserId || !interaction.guild) {
+    await interaction.editReply("No se pudo identificar el bot o el servidor.");
+    return;
+  }
+  try {
+    const botMember = await interaction.guild.members.fetch(botUserId);
+    const result = await publishBreedingPanel(rootDir, interaction.guild, botMember, env);
+    const logger = new OperationLogger(path.join(rootDir, "logs"), botEnvSecrets(env));
+    await logger.log("Panel de crianza publicado desde slash command.", { userId: interaction.user.id, result });
+    await interaction.editReply([
+      `Panel de crianza ${result.action === "created" ? "publicado" : "actualizado"}.`,
+      `Mensaje: ${result.messageId}`,
+      `Permisos actualizados: ${result.permissionUpdates}`,
+      result.permissionErrors.length > 0 ? `Errores: ${result.permissionErrors.join(" | ")}` : "Errores: ninguno"
+    ].join("\n"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await interaction.editReply(`No se pudo reparar/publicar el panel de crianza: ${sanitizeSecret(message, botEnvSecrets(env))}`);
+    throw error;
   }
 }
 

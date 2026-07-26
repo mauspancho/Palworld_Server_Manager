@@ -19,6 +19,9 @@ import { selfRolesConfigPath } from "./self-roles-state.js";
 import { validateExistingSelfRoles } from "./self-roles-validation.js";
 import { handleBotInteraction } from "./bot-interactions.js";
 import { handleInformationChannelMessage, validateInformationPermissionConfiguration } from "./info-permissions.js";
+import { loadBreedingCatalog, summarizeBreedingData } from "./breeding-service.js";
+import { fetchBreedingChannel } from "./breeding-publisher.js";
+import { validateBreedingChannelPermissions } from "./breeding-permissions.js";
 import {
   assignPendingRoleIfConfigured,
   handleRulesButtonInteraction,
@@ -59,8 +62,22 @@ export async function validateBotStartup(client: Client, env: BotEnv, rootDir = 
   const selfRolesResult = await validateExistingSelfRoles(guild, botMember, env, selfRolesConfig);
   const desired = await loadDesiredStructure(path.join(rootDir, "config", "server-structure.yml"));
   const infoPermissionResult = await validateInformationPermissionConfiguration(guild, botMember, desired);
+  const breedingWarnings: string[] = [];
+  await loadBreedingCatalog(rootDir).then((catalog) => {
+    const summary = summarizeBreedingData(catalog);
+    safeLog(`Crianza cargada: ${summary.palCount} Pals, ${summary.combinationCount} combinaciones.`);
+  }).catch((error) => {
+    safeError("Crianza deshabilitada temporalmente por error de datos.", error, env);
+  });
+  if (env.BREEDING_CHANNEL_ID) {
+    await fetchBreedingChannel(guild, env).then((channel) => {
+      breedingWarnings.push(...validateBreedingChannelPermissions(botMember, channel));
+    }).catch((error) => {
+      breedingWarnings.push(error instanceof Error ? error.message : String(error));
+    });
+  }
   const errors = [...result.errors, ...selfRolesResult.errors, ...infoPermissionResult.errors];
-  const warnings = [...result.warnings, ...selfRolesResult.warnings, ...infoPermissionResult.warnings];
+  const warnings = [...result.warnings, ...selfRolesResult.warnings, ...infoPermissionResult.warnings, ...breedingWarnings.map((warning) => `Crianza: ${warning}`)];
   for (const warning of warnings) {
     safeLog(`Advertencia: ${warning}`);
   }

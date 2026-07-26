@@ -155,7 +155,11 @@ describe("commands and atomic writes", () => {
 
     expect(names).toContain("gremio");
     expect(names).toContain("estado");
+    expect(names).toContain("crianza");
+    expect(names).toContain("crianza-panel");
     expect(names).toContain("vincular");
+    const breeding = slashCommandDefinitions().find((command) => command.name === "crianza");
+    expect(breeding?.options?.[0]).toMatchObject({ name: "pal", autocomplete: true });
   });
 
   it("writes JSON atomically", async () => {

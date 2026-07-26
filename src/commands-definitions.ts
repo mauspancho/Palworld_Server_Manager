@@ -102,6 +102,27 @@ export function slashCommandDefinitions(): RESTPostAPIChatInputApplicationComman
         { type: ApplicationCommandOptionType.Subcommand, name: "reparar", description: "Reparar permisos de canales informativos" }
       ]
     },
+    {
+      name: "crianza",
+      description: "Consultar combinaciones de crianza de Palworld",
+      options: [
+        {
+          type: ApplicationCommandOptionType.String,
+          name: "pal",
+          description: "Pal que deseas obtener",
+          required: true,
+          autocomplete: true
+        }
+      ]
+    },
+    {
+      name: "crianza-panel",
+      description: "Administrar el panel de crianza",
+      options: [
+        { type: ApplicationCommandOptionType.Subcommand, name: "publicar", description: "Publicar o actualizar el panel de crianza" },
+        { type: ApplicationCommandOptionType.Subcommand, name: "reparar", description: "Reparar permisos y panel de crianza" }
+      ]
+    },
     { name: "vincular", description: "Generar codigo temporal de vinculacion" }
   ];
 }

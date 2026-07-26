@@ -12,6 +12,7 @@ import { booleanEnv } from "./env-utils.js";
 import { TcpRconProbe } from "./rcon-client.js";
 import { validateBotConfiguration } from "./bot-validation.js";
 import { validateExistingSelfRoles } from "./self-roles-validation.js";
+import { loadBreedingCatalog, summarizeBreedingData } from "./breeding-service.js";
 
 const context = createContext();
 
@@ -19,6 +20,8 @@ async function main(): Promise<void> {
   await loadDesiredStructure(context.configPath);
   const selfRoles = await loadSelfRolesConfig(selfRolesConfigPath(context.rootDir));
   await loadGuildsConfig(context.rootDir);
+  const breedingCatalog = await loadBreedingCatalog(context.rootDir);
+  const breedingSummary = summarizeBreedingData(breedingCatalog);
   loadStatusConfig();
   const env = loadBotEnv(context.rootDir);
   const session = await connectDiscord(env);
@@ -50,6 +53,7 @@ async function main(): Promise<void> {
     await client.test();
   }
 
+  console.log(`Crianza validada: ${breedingSummary.palCount} Pals, ${breedingSummary.combinationCount} combinaciones.`);
   console.log("Validacion completa finalizada.");
 }
 

@@ -53,6 +53,26 @@ npm run info:repair
 
 Tambien existe `/informacion reparar` si los comandos slash estan registrados.
 
+## Canal De Crianza
+
+`BREEDING_CHANNEL_ID` debe apuntar a `🥚・crianza`.
+
+Permisos esperados para `@everyone`, `MEMBER_ROLE_ID` y `PENDING_MEMBER_ROLE_ID`:
+
+```txt
+Allow: ViewChannel, ReadMessageHistory, UseApplicationCommands
+Deny: SendMessages, SendMessagesInThreads, CreatePublicThreads, CreatePrivateThreads, AttachFiles, SendVoiceMessages, MentionEveryone, ManageMessages, ManageThreads, ManageChannels, CreateInstantInvite
+```
+
+Reparacion/publicacion:
+
+```sh
+npm run breeding:publish
+npm run breeding:repair
+```
+
+Tambien existe `/crianza-panel reparar` para roles autorizados.
+
 El rol del bot debe estar por encima de:
 
 - MEMBER_ROLE_ID

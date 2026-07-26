@@ -8,6 +8,7 @@ Herramienta multiplataforma para administrar Discord y automatizaciones comunita
 - Bot permanente: bienvenida, DM de bienvenida, registro de entradas y asignacion segura de `MEMBER_ROLE_ID`.
 - Aceptacion de reglas: botones persistentes `Aceptar reglas` y `Rechazar reglas`, rol pendiente opcional y acceso al chat general solo tras aceptar.
 - Canales informativos: permisos de solo lectura para bienvenida, reglas, anuncios, datos del servidor y seleccion de roles, con reparacion administrativa y proteccion secundaria.
+- Crianza Palworld: panel persistente, `/crianza` con autocompletado y datos locales versionados en `config/breeding-combinations.json`.
 - Self-roles: menus persistentes en `ROLES_CHANNEL_ID`.
 - Gremios: roles y canales privados por gremio, mas comandos `/gremio`.
 - Estado Palworld: panel persistente, `/estado` y alertas por cambio.
@@ -35,6 +36,7 @@ GENERAL_CHAT_CHANNEL_ID=
 MEMBER_ROLE_ID=
 PENDING_MEMBER_ROLE_ID=
 MEMBER_LOG_CHANNEL_ID=
+BREEDING_CHANNEL_ID=
 ```
 
 Estado Palworld:
@@ -163,6 +165,39 @@ Tambien puedes registrar comandos y usar `/informacion reparar` desde Discord co
 
 Si un usuario normal logra escribir en uno de esos canales por una configuracion incorrecta, el bot intentara borrar el mensaje, avisar por DM y registrar el evento en `MEMBER_LOG_CHANNEL_ID`. No aplica sanciones automaticas.
 
+## Crianza Palworld
+
+El canal de crianza se configura con:
+
+```txt
+BREEDING_CHANNEL_ID=
+```
+
+Debe apuntar al canal visible `🥚・crianza`. El panel usa permisos de solo lectura para `@everyone`, `MEMBER_ROLE_ID` y `PENDING_MEMBER_ROLE_ID`: pueden ver, leer historial, usar componentes y ejecutar `/crianza`, pero no enviar mensajes, adjuntar archivos, crear hilos ni crear invitaciones.
+
+Los datos locales estan en:
+
+```txt
+config/breeding-combinations.json
+```
+
+El archivo se valida con 86 Pals objetivo, 113 combinaciones unicas, 42 combinaciones de GAMES.GG y 71 adicionales de Vandal. La combinacion `Ghangler + Sootseer = Ghangler Ignis` se conserva una sola vez con ambas fuentes.
+
+Publicar o reparar el panel:
+
+```sh
+npm run breeding:publish
+npm run breeding:repair
+```
+
+Tambien existe `/crianza-panel publicar` y `/crianza-panel reparar` para roles autorizados. Los usuarios consultan con:
+
+```txt
+/crianza pal:Anubis
+```
+
+El comando incluye autocompletado y responde de forma efimera. El panel usa selectores persistentes de filtro, pagina y Pal, por lo que sigue funcionando tras reiniciar el bot.
+
 ## Scripts
 
 ```sh
@@ -183,6 +218,8 @@ npm run status:publish
 npm run status:validate
 npm run tickets:publish
 npm run info:repair
+npm run breeding:publish
+npm run breeding:repair
 npm run rcon:validate
 npm run commands:register
 npm run commands:delete
@@ -191,7 +228,7 @@ npm run community:publish
 npm run validate:all
 ```
 
-`discord:apply`, `roles:publish`, `guilds:publish`, `status:publish`, `tickets:publish`, `info:repair`, `commands:register`, `commands:delete` y `community:publish` modifican Discord. Revisalos antes de ejecutarlos.
+`discord:apply`, `roles:publish`, `guilds:publish`, `status:publish`, `tickets:publish`, `info:repair`, `breeding:publish`, `breeding:repair`, `commands:register`, `commands:delete` y `community:publish` modifican Discord. Revisalos antes de ejecutarlos.
 
 ## Windows
 
@@ -201,6 +238,7 @@ npm run build
 npm test
 npm run bot:validate
 npm run info:repair
+npm run breeding:publish
 npm run validate:all
 ```
 
@@ -215,11 +253,13 @@ npm run build
 npm test
 npm run validate:all
 npm run info:repair
+npm run breeding:publish
 ```
 
 Consulta:
 
 - `docs/debian-systemd.md`
+- `docs/breeding.md`
 - `docs/palworld-control-helper.md`
 - `docs/discord-permissions.md`
 - `docs/status-panel.md`
@@ -237,6 +277,7 @@ npm run roles:publish
 npm run guilds:publish
 npm run status:publish
 npm run tickets:publish
+npm run breeding:publish
 ```
 
 Publicador agrupado:

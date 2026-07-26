@@ -25,6 +25,8 @@
     "status:validate": "node dist/status-validate.js",
     "tickets:publish": "node dist/tickets-publish.js",
     "info:repair": "node dist/info-repair.js",
+    "breeding:publish": "node dist/breeding-publish.js",
+    "breeding:repair": "node dist/breeding-publish.js",
     "rcon:validate": "node dist/rcon-validate.js",
     "commands:register": "node dist/commands.js register",
     "commands:delete": "node dist/commands.js delete",
