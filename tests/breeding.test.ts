@@ -161,7 +161,7 @@ describe("breeding panel", () => {
   it("answers /crianza queries ephemerally through the persistent handler", async () => {
     const deferred: unknown[] = [];
     const edits: unknown[] = [];
-    const handled = await handleBreedingInteraction({
+    const interaction: any = {
       commandName: "crianza",
       guild: {},
       guildId: "guild",
@@ -170,14 +170,15 @@ describe("breeding panel", () => {
       options: { getString: () => "Anubis" },
       deferred: false,
       replied: false,
-      deferReply: async (payload: unknown) => { deferred.push(payload); },
+      deferReply: async (payload: unknown) => { deferred.push(payload); interaction.deferred = true; },
       editReply: async (payload: unknown) => { edits.push(payload); },
       reply: async (payload: unknown) => { edits.push(payload); },
       isAutocomplete: () => false,
       isChatInputCommand: () => true,
       isStringSelectMenu: () => false,
       isButton: () => false
-    } as any, {
+    };
+    const handled = await handleBreedingInteraction(interaction, {
       DISCORD_BOT_TOKEN: "secret",
       DISCORD_GUILD_ID: "guild",
       WELCOME_CHANNEL_ID: "welcome",
@@ -192,6 +193,45 @@ describe("breeding panel", () => {
     expect(handled).toBe(true);
     expect(deferred[0]).toMatchObject({ flags: 64 });
     expect(JSON.stringify(edits[0])).toContain("Anubis");
+  });
+
+  it("defers pal select interactions before returning the combinations", async () => {
+    const deferred: unknown[] = [];
+    const edits: unknown[] = [];
+    const interaction: any = {
+      customId: "breeding:pal:all:a-d",
+      guild: {},
+      guildId: "guild",
+      channelId: "breeding",
+      user: { id: "user", bot: false },
+      values: ["anubis"],
+      deferred: false,
+      replied: false,
+      deferReply: async (payload: unknown) => { deferred.push(payload); interaction.deferred = true; },
+      editReply: async (payload: unknown) => { edits.push(payload); },
+      reply: async (payload: unknown) => { edits.push(payload); },
+      followUp: async (payload: unknown) => { edits.push(payload); },
+      isAutocomplete: () => false,
+      isChatInputCommand: () => false,
+      isStringSelectMenu: () => true,
+      isButton: () => false
+    };
+
+    const handled = await handleBreedingInteraction(interaction, {
+      DISCORD_BOT_TOKEN: "secret",
+      DISCORD_GUILD_ID: "guild",
+      WELCOME_CHANNEL_ID: "welcome",
+      RULES_CHANNEL_ID: "rules",
+      ROLES_CHANNEL_ID: "roles",
+      GENERAL_CHAT_CHANNEL_ID: "general",
+      MEMBER_ROLE_ID: "member",
+      MEMBER_LOG_CHANNEL_ID: "log",
+      BREEDING_CHANNEL_ID: "breeding"
+    }, process.cwd());
+
+    expect(handled).toBe(true);
+    expect(deferred[0]).toMatchObject({ flags: 64 });
+    expect(JSON.stringify(edits[0])).toContain("Blazamut + Dualith = Anubis");
   });
 
   it("validates breeding channel permissions", () => {

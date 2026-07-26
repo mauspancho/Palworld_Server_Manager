@@ -38,15 +38,15 @@ export async function handleBreedingInteraction(interaction: Interaction, env: B
     return true;
   }
   if (interaction.isChatInputCommand() && interaction.commandName === "crianza") {
-    await handleBreedingCommand(interaction, env, rootDir);
+    await handleBreedingCommand(interaction, env, rootDir).catch((error) => handleBreedingFailure(interaction, env, rootDir, error));
     return true;
   }
   if (interaction.isStringSelectMenu() && interaction.customId.startsWith(breedingCustomIdPrefix)) {
-    await handleBreedingSelect(interaction, env, rootDir);
+    await handleBreedingSelect(interaction, env, rootDir).catch((error) => handleBreedingFailure(interaction, env, rootDir, error));
     return true;
   }
   if (interaction.isButton() && interaction.customId.startsWith(breedingCustomIdPrefix)) {
-    await handleBreedingButton(interaction, env, rootDir);
+    await handleBreedingButton(interaction, env, rootDir).catch((error) => handleBreedingFailure(interaction, env, rootDir, error));
     return true;
   }
   return false;
@@ -63,25 +63,28 @@ async function handleBreedingAutocomplete(interaction: AutocompleteInteraction, 
 }
 
 async function handleBreedingCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  await deferEphemeral(interaction);
   if (!(await validateBreedingInteractionLocation(interaction, env))) {
     return;
   }
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const palName = interaction.options.getString("pal", true);
   await replyBreedingResult(interaction, env, rootDir, palName, "all", "command");
 }
 
 async function handleBreedingSelect(interaction: StringSelectMenuInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  const isPalSelection = interaction.customId.startsWith(breedingPalSelectPrefix);
+  if (isPalSelection) {
+    await deferEphemeral(interaction);
+  }
+
   if (!(await validateBreedingInteractionLocation(interaction, env))) {
     return;
   }
   if (interaction.user.bot) {
+    if (interaction.deferred && !interaction.replied) {
+      await interaction.editReply("Interaccion ignorada.");
+    }
     return;
-  }
-
-  const isPalSelection = interaction.customId.startsWith(breedingPalSelectPrefix);
-  if (isPalSelection) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   }
 
   const catalog = await safeLoadCatalog(interaction, env, rootDir);
@@ -161,14 +164,15 @@ async function validateBreedingInteractionLocation(
   env: BotEnv
 ): Promise<boolean> {
   if (!interaction.guild || interaction.guildId !== env.DISCORD_GUILD_ID) {
+    await respondToBreedingInteraction(interaction, "Esta interaccion no pertenece al servidor configurado.");
     return false;
   }
   if (!env.BREEDING_CHANNEL_ID) {
-    await interaction.reply({ content: "BREEDING_CHANNEL_ID no esta configurado.", flags: MessageFlags.Ephemeral });
+    await respondToBreedingInteraction(interaction, "BREEDING_CHANNEL_ID no esta configurado.");
     return false;
   }
   if (interaction.channelId !== env.BREEDING_CHANNEL_ID) {
-    await interaction.reply({ content: `Usa esta funcion en <#${env.BREEDING_CHANNEL_ID}>.`, flags: MessageFlags.Ephemeral });
+    await respondToBreedingInteraction(interaction, `Usa esta funcion en <#${env.BREEDING_CHANNEL_ID}>.`);
     return false;
   }
   return true;
@@ -235,4 +239,35 @@ async function replyOrEditEphemeral(
     return;
   }
   await interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+}
+
+async function deferEphemeral(interaction: ChatInputCommandInteraction | StringSelectMenuInteraction): Promise<void> {
+  if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  }
+}
+
+async function respondToBreedingInteraction(
+  interaction: ChatInputCommandInteraction | StringSelectMenuInteraction | ButtonInteraction,
+  content: string
+): Promise<void> {
+  if (interaction.deferred && !interaction.replied) {
+    await interaction.editReply(content);
+    return;
+  }
+  if (interaction.replied || interaction.deferred) {
+    await interaction.followUp({ content, flags: MessageFlags.Ephemeral });
+    return;
+  }
+  await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+}
+
+async function handleBreedingFailure(
+  interaction: ChatInputCommandInteraction | StringSelectMenuInteraction | ButtonInteraction,
+  env: BotEnv,
+  rootDir: string,
+  error: unknown
+): Promise<void> {
+  await logBreedingUse(rootDir, env, "Error procesando interaccion de crianza.", { error: sanitizeSecret(error, botEnvSecrets(env)) });
+  await respondToBreedingInteraction(interaction, unavailableMessage).catch(() => undefined);
 }
