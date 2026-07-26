@@ -8,6 +8,7 @@ export interface WelcomeMessageInput {
   memberCount: number;
   rulesChannelId: string;
   rolesChannelId: string;
+  generalChatChannelId?: string;
 }
 
 export function buildWelcomeEmbed(input: WelcomeMessageInput): EmbedBuilder {
@@ -19,9 +20,10 @@ export function buildWelcomeEmbed(input: WelcomeMessageInput): EmbedBuilder {
         "",
         "Antes de comenzar:",
         `1. Lee las reglas en el canal <#${input.rulesChannelId}>.`,
-        `2. Selecciona tus roles en <#${input.rolesChannelId}>.`,
-        "3. Consulta los datos del servidor.",
-        "4. Presentate y comienza a buscar equipo."
+        "2. Acepta las reglas usando los botones del mensaje de reglas.",
+        `3. Selecciona tus roles en <#${input.rolesChannelId}>.`,
+        "4. Consulta los datos del servidor.",
+        `5. Cuando aceptes, continua en ${input.generalChatChannelId ? `<#${input.generalChatChannelId}>` : "el chat general"}.`
       ].join("\n")
     )
     .addFields(
@@ -37,7 +39,7 @@ export function buildWelcomeEmbed(input: WelcomeMessageInput): EmbedBuilder {
   return embed;
 }
 
-export function buildWelcomeMessageInput(member: GuildMember, rulesChannelId: string, rolesChannelId: string): WelcomeMessageInput {
+export function buildWelcomeMessageInput(member: GuildMember, rulesChannelId: string, rolesChannelId: string, generalChatChannelId?: string): WelcomeMessageInput {
   return {
     memberId: member.id,
     displayName: member.displayName,
@@ -45,18 +47,20 @@ export function buildWelcomeMessageInput(member: GuildMember, rulesChannelId: st
     joinedAt: member.joinedAt ?? new Date(),
     memberCount: member.guild.memberCount,
     rulesChannelId,
-    rolesChannelId
+    rolesChannelId,
+    generalChatChannelId
   };
 }
 
-export function buildDirectWelcomeMessage(rulesChannelId: string, rolesChannelId: string): string {
+export function buildDirectWelcomeMessage(rulesChannelId: string, rolesChannelId: string, generalChatChannelId?: string): string {
   return [
     "Bienvenido a XBOXPALSERVER.",
     "",
     `Reglas: <#${rulesChannelId}>`,
     `Seleccion de roles: <#${rolesChannelId}>`,
+    generalChatChannelId ? `Chat general despues de aceptar: <#${generalChatChannelId}>` : "",
     "",
-    "Cuando completes la verificacion o aceptes las reglas, recibiras el rol de miembro automaticamente."
+    "Para acceder al resto del servidor debes leer y aceptar las reglas usando los botones del mensaje de reglas."
   ].join("\n");
 }
 

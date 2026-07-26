@@ -15,7 +15,9 @@ const env: BotEnv = {
   WELCOME_CHANNEL_ID: "welcome",
   RULES_CHANNEL_ID: "rules",
   ROLES_CHANNEL_ID: "roles",
+  GENERAL_CHAT_CHANNEL_ID: "general",
   MEMBER_ROLE_ID: "member",
+  PENDING_MEMBER_ROLE_ID: "pending",
   MEMBER_LOG_CHANNEL_ID: "log"
 };
 

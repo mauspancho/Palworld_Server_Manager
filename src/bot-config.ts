@@ -8,7 +8,9 @@ export interface BotEnv {
   WELCOME_CHANNEL_ID: string;
   RULES_CHANNEL_ID: string;
   ROLES_CHANNEL_ID: string;
+  GENERAL_CHAT_CHANNEL_ID: string;
   MEMBER_ROLE_ID: string;
+  PENDING_MEMBER_ROLE_ID?: string;
   MEMBER_LOG_CHANNEL_ID: string;
 }
 
@@ -18,6 +20,7 @@ const requiredKeys = [
   "WELCOME_CHANNEL_ID",
   "RULES_CHANNEL_ID",
   "ROLES_CHANNEL_ID",
+  "GENERAL_CHAT_CHANNEL_ID",
   "MEMBER_ROLE_ID",
   "MEMBER_LOG_CHANNEL_ID"
 ] as const;
@@ -30,7 +33,10 @@ export function loadBotEnv(rootDir: string): BotEnv {
     throw new SafeError(`Faltan variables requeridas en .env: ${missing.join(", ")}.`);
   }
 
-  return Object.fromEntries(requiredKeys.map((key) => [key, process.env[key]])) as unknown as BotEnv;
+  return {
+    ...Object.fromEntries(requiredKeys.map((key) => [key, process.env[key]])),
+    PENDING_MEMBER_ROLE_ID: process.env.PENDING_MEMBER_ROLE_ID || undefined
+  } as unknown as BotEnv;
 }
 
 export function botEnvSecrets(env?: Partial<BotEnv>): string[] {

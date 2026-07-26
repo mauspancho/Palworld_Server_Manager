@@ -16,6 +16,12 @@ import { loadSelfRolesConfig } from "./self-roles-config.js";
 import { selfRolesConfigPath } from "./self-roles-state.js";
 import { validateExistingSelfRoles } from "./self-roles-validation.js";
 import { handleBotInteraction } from "./bot-interactions.js";
+import {
+  assignPendingRoleIfConfigured,
+  handleRulesButtonInteraction,
+  isRulesButton,
+  publishRulesPromptForMember
+} from "./rules-acceptance.js";
 
 interface ProcessedJoin {
   memberId: string;
@@ -84,12 +90,18 @@ export function registerBotHandlers(client: Client, env: BotEnv, options: BotRun
     if (newMember.user.bot) {
       return;
     }
-    if (oldMember.pending === true && newMember.pending === false) {
-      await assignMemberRoleIfAllowed(newMember, env).catch((error) => safeError("Error asignando rol tras verificacion.", error, env));
+    if (oldMember.pending === true && newMember.pending === false && !newMember.roles.cache.has(env.MEMBER_ROLE_ID)) {
+      await publishRulesPromptForMember(newMember, env, options.rootDir ?? process.cwd()).catch((error) => safeError("Error publicando solicitud de reglas tras verificacion.", error, env));
     }
   });
 
   client.on("interactionCreate", async (interaction) => {
+    if (interaction.isButton() && isRulesButton(interaction.customId)) {
+      await handleRulesButtonInteraction(interaction, env, options.rootDir ?? process.cwd()).catch((error) => {
+        safeError("Error procesando aceptacion de reglas.", error, env);
+      });
+      return;
+    }
     if (!interaction.isStringSelectMenu()) {
       await handleBotInteraction(interaction, env, options.rootDir ?? process.cwd()).catch((error) => {
         safeError("Error procesando interaccion.", error, env);
@@ -134,21 +146,25 @@ export async function handleGuildMemberAdd(member: GuildMember, env: BotEnv, opt
 
   const welcomeChannel = await fetchTextChannel(member, env.WELCOME_CHANNEL_ID);
   const logChannel = await fetchTextChannel(member, env.MEMBER_LOG_CHANNEL_ID);
-  const embed = buildWelcomeEmbed(buildWelcomeMessageInput(member, env.RULES_CHANNEL_ID, env.ROLES_CHANNEL_ID));
+  const embed = buildWelcomeEmbed(buildWelcomeMessageInput(member, env.RULES_CHANNEL_ID, env.ROLES_CHANNEL_ID, env.GENERAL_CHAT_CHANNEL_ID));
+
+  await assignPendingRoleIfConfigured(member, env).catch((error) => {
+    safeError("No se pudo asignar rol pendiente.", error, env);
+  });
 
   await welcomeChannel.send({ content: `<@${member.id}>`, embeds: [embed] }).catch((error) => {
     safeError("No se pudo enviar bienvenida publica.", error, env);
   });
 
   if (options.sendDirectWelcome !== false) {
-    await member.send(buildDirectWelcomeMessage(env.RULES_CHANNEL_ID, env.ROLES_CHANNEL_ID)).catch((error) => {
+    await member.send(buildDirectWelcomeMessage(env.RULES_CHANNEL_ID, env.ROLES_CHANNEL_ID, env.GENERAL_CHAT_CHANNEL_ID)).catch((error) => {
       safeError("No se pudo enviar mensaje privado de bienvenida.", error, env);
     });
   }
 
-  if (member.pending === false) {
-    await assignMemberRoleIfAllowed(member, env);
-  }
+  await publishRulesPromptForMember(member, env, options.rootDir ?? process.cwd()).catch((error) => {
+    safeError("No se pudo publicar solicitud de reglas.", error, env);
+  });
 
   await logChannel.send({
     content: `Entrada: <@${member.id}> (${member.user.tag}) | pending=${String(member.pending ?? false)} | miembros=${member.guild.memberCount}`

@@ -9,7 +9,9 @@ const env: BotEnv = {
   WELCOME_CHANNEL_ID: "welcome",
   RULES_CHANNEL_ID: "rules",
   ROLES_CHANNEL_ID: "roles",
+  GENERAL_CHAT_CHANNEL_ID: "general",
   MEMBER_ROLE_ID: "member-role",
+  PENDING_MEMBER_ROLE_ID: "pending-role",
   MEMBER_LOG_CHANNEL_ID: "log"
 };
 
@@ -28,6 +30,7 @@ function guildWithRole(rolePosition = 1): Guild {
     ["welcome", textChannel("welcome")],
     ["rules", textChannel("rules")],
     ["roles", textChannel("roles")],
+    ["general", textChannel("general")],
     ["log", textChannel("log")]
   ]);
 
@@ -36,7 +39,7 @@ function guildWithRole(rolePosition = 1): Guild {
       fetch: async (id: string) => channels.get(id) ?? null
     },
     roles: {
-      fetch: async (id: string) => id === "member-role"
+      fetch: async (id: string) => id === "member-role" || id === "pending-role"
         ? {
             id,
             managed: false,

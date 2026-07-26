@@ -6,6 +6,7 @@ Herramienta multiplataforma para administrar Discord y automatizaciones comunita
 
 - CLI administrativa: `validate`, `list`, `backup`, `plan`, `apply`, `restore`.
 - Bot permanente: bienvenida, DM de bienvenida, registro de entradas y asignacion segura de `MEMBER_ROLE_ID`.
+- Aceptacion de reglas: botones persistentes `Aceptar reglas` y `Rechazar reglas`, rol pendiente opcional y acceso al chat general solo tras aceptar.
 - Self-roles: menus persistentes en `ROLES_CHANNEL_ID`.
 - Gremios: roles y canales privados por gremio, mas comandos `/gremio`.
 - Estado Palworld: panel persistente, `/estado` y alertas por cambio.
@@ -29,7 +30,9 @@ DISCORD_GUILD_ID=
 WELCOME_CHANNEL_ID=
 RULES_CHANNEL_ID=
 ROLES_CHANNEL_ID=
+GENERAL_CHAT_CHANNEL_ID=
 MEMBER_ROLE_ID=
+PENDING_MEMBER_ROLE_ID=
 MEMBER_LOG_CHANNEL_ID=
 ```
 
@@ -100,7 +103,39 @@ CreatePublicThreads
 CreatePrivateThreads
 ```
 
-No dependas de `Administrator`. El rol del bot debe estar por encima de `MEMBER_ROLE_ID`, roles de self-roles, roles de gremios y cuarentena.
+No dependas de `Administrator`. El rol del bot debe estar por encima de `MEMBER_ROLE_ID`, `PENDING_MEMBER_ROLE_ID`, roles de self-roles, roles de gremios y cuarentena.
+
+## Aceptacion De Reglas
+
+Cuando un usuario entra:
+
+1. El bot envia bienvenida.
+2. Si `PENDING_MEMBER_ROLE_ID` esta configurado, asigna ese rol temporal.
+3. Publica en `RULES_CHANNEL_ID` un mensaje individual con botones persistentes:
+   - `Aceptar reglas`
+   - `Rechazar reglas`
+4. Al aceptar, asigna `MEMBER_ROLE_ID`, retira `PENDING_MEMBER_ROLE_ID` y muestra enlace/boton hacia `GENERAL_CHAT_CHANNEL_ID`.
+5. Al rechazar, mantiene el acceso restringido y vuelve a mostrar los botones.
+
+Los botones usan IDs estables:
+
+```txt
+rules_accept
+rules_reject
+```
+
+El estado se guarda en:
+
+```txt
+data/rules-acceptance.json
+```
+
+Para restringir canales antes de aceptar, configura permisos de Discord con roles:
+
+- `PENDING_MEMBER_ROLE_ID`: solo bienvenida, reglas y canales publicos permitidos.
+- `MEMBER_ROLE_ID`: chat general, voz general y comunidad.
+
+El bot no intenta controlar acceso ocultando botones; el acceso real depende de roles y permisos de Discord.
 
 ## Scripts
 

@@ -27,6 +27,7 @@ No se debe depender de `Administrator`.
 El rol del bot debe estar por encima de:
 
 - MEMBER_ROLE_ID
+- PENDING_MEMBER_ROLE_ID, si se usa
 - Roles de self-roles
 - Roles Gremio 1 a Gremio 5
 - QUARANTINE_ROLE_ID, si se usa

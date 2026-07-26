@@ -17,7 +17,8 @@ export async function validateBotConfiguration(guild: Guild, botMember: GuildMem
   const warnings: string[] = [];
 
   const welcomeChannel = await validateTextChannel(guild, env.WELCOME_CHANNEL_ID, "WELCOME_CHANNEL_ID", errors);
-  await validateTextChannel(guild, env.RULES_CHANNEL_ID, "RULES_CHANNEL_ID", errors);
+  const rulesChannel = await validateTextChannel(guild, env.RULES_CHANNEL_ID, "RULES_CHANNEL_ID", errors);
+  await validateTextChannel(guild, env.GENERAL_CHAT_CHANNEL_ID, "GENERAL_CHAT_CHANNEL_ID", errors);
   await validateTextChannel(guild, env.ROLES_CHANNEL_ID, "ROLES_CHANNEL_ID", errors);
   const logChannel = await validateTextChannel(guild, env.MEMBER_LOG_CHANNEL_ID, "MEMBER_LOG_CHANNEL_ID", errors);
 
@@ -30,12 +31,24 @@ export async function validateBotConfiguration(guild: Guild, botMember: GuildMem
     errors.push("El rol mas alto del bot debe estar por encima de MEMBER_ROLE_ID.");
   }
 
+  if (env.PENDING_MEMBER_ROLE_ID) {
+    const pendingRole = await guild.roles.fetch(env.PENDING_MEMBER_ROLE_ID).catch(() => null);
+    if (!pendingRole) {
+      errors.push("PENDING_MEMBER_ROLE_ID no corresponde a un rol existente.");
+    } else if (pendingRole.managed) {
+      errors.push("PENDING_MEMBER_ROLE_ID apunta a un rol administrado por integracion y no puede asignarse manualmente.");
+    } else if (botMember.roles.highest.comparePositionTo(pendingRole) <= 0) {
+      errors.push("El rol mas alto del bot debe estar por encima de PENDING_MEMBER_ROLE_ID.");
+    }
+  }
+
   if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
     errors.push("El bot necesita permiso ManageRoles para asignar MEMBER_ROLE_ID.");
   }
 
   for (const [label, channel] of [
     ["WELCOME_CHANNEL_ID", welcomeChannel],
+    ["RULES_CHANNEL_ID", rulesChannel],
     ["MEMBER_LOG_CHANNEL_ID", logChannel]
   ] as const) {
     if (channel && !channel.permissionsFor(botMember).has(PermissionFlagsBits.SendMessages)) {

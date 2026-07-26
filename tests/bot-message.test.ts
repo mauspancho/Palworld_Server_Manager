@@ -10,22 +10,25 @@ describe("welcome message", () => {
       joinedAt: new Date("2026-07-23T07:00:00.000Z"),
       memberCount: 42,
       rulesChannelId: "rules",
-      rolesChannelId: "roles"
+      rolesChannelId: "roles",
+      generalChatChannelId: "general"
     }).toJSON();
 
     expect(embed.title).toBe("Bienvenido a XBOXPALSERVER");
     expect(embed.description).toContain("Hola <@123>");
     expect(embed.description).toContain("<#rules>");
     expect(embed.description).toContain("<#roles>");
+    expect(embed.description).toContain("<#general>");
     expect(embed.thumbnail?.url).toBe("https://cdn.example/avatar.png");
     expect(embed.fields?.some((field) => field.name === "Miembros actuales" && field.value === "42")).toBe(true);
   });
 
   it("builds a direct message without needing message content intent", () => {
-    const message = buildDirectWelcomeMessage("rules", "roles");
+    const message = buildDirectWelcomeMessage("rules", "roles", "general");
 
     expect(message).toContain("<#rules>");
     expect(message).toContain("<#roles>");
-    expect(message).toContain("recibiras el rol");
+    expect(message).toContain("<#general>");
+    expect(message).toContain("aceptar las reglas");
   });
 });
