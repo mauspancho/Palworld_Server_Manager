@@ -261,7 +261,7 @@ export async function validateInformationPermissionConfiguration(
     errors.push("El bot necesita ManageChannels para reparar permisos de canales informativos.");
   }
   if (!botMember.permissions.has(PermissionFlagsBits.ManageMessages)) {
-    errors.push("El bot necesita ManageMessages para retirar mensajes no autorizados en canales informativos.");
+    warnings.push("El bot necesita ManageMessages para retirar mensajes no autorizados en canales informativos; la proteccion informativa seguira activa pero no podra borrar mensajes hasta corregir permisos.");
   }
   if (botMember.permissions.has(PermissionFlagsBits.Administrator)) {
     errors.push("El bot no debe depender de Administrator para canales informativos.");
@@ -282,7 +282,7 @@ export async function validateInformationPermissionConfiguration(
       errors.push(`El bot no puede publicar en el canal informativo ${channel.name}.`);
     }
     if (!permissions?.has(PermissionFlagsBits.ManageMessages)) {
-      errors.push(`El bot no puede moderar mensajes en el canal informativo ${channel.name}.`);
+      warnings.push(`El bot no puede moderar mensajes en el canal informativo ${channel.name}; no podra retirar mensajes no autorizados en ese canal.`);
     }
   }
 

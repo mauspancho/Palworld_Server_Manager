@@ -97,15 +97,27 @@ describe("information permissions", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it("rejects missing moderation permissions", async () => {
+  it("warns about missing cleanup permissions without making startup fail", async () => {
     const result = await validateInformationPermissionConfiguration(guildWithInformationChannels(), botMember([]), desired);
 
     expect(result.errors).toContain("El bot necesita ManageChannels para reparar permisos de canales informativos.");
-    expect(result.errors).toContain("El bot necesita ManageMessages para retirar mensajes no autorizados en canales informativos.");
+    expect(result.warnings).toContain("El bot necesita ManageMessages para retirar mensajes no autorizados en canales informativos; la proteccion informativa seguira activa pero no podra borrar mensajes hasta corregir permisos.");
+  });
+
+  it("does not fail startup when only ManageMessages is missing", async () => {
+    const result = await validateInformationPermissionConfiguration(guildWithInformationChannels(false), botMember([
+      PermissionFlagsBits.ManageChannels
+    ]), desired);
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      "El bot necesita ManageMessages para retirar mensajes no autorizados en canales informativos; la proteccion informativa seguira activa pero no podra borrar mensajes hasta corregir permisos."
+    ]));
+    expect(result.warnings.some((warning) => warning.includes("no puede moderar mensajes"))).toBe(true);
   });
 });
 
-function guildWithInformationChannels(): Guild {
+function guildWithInformationChannels(canManageMessages = true): Guild {
   const channels = new Collection<string, any>();
   for (const channel of desired.categories[0]!.channels) {
     channels.set(channel.name, {
@@ -115,7 +127,7 @@ function guildWithInformationChannels(): Guild {
       permissionsFor: () => new PermissionsBitField([
         PermissionFlagsBits.ViewChannel,
         PermissionFlagsBits.SendMessages,
-        PermissionFlagsBits.ManageMessages
+        ...(canManageMessages ? [PermissionFlagsBits.ManageMessages] : [])
       ])
     });
   }

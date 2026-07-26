@@ -24,6 +24,8 @@ CreatePublicThreads
 CreatePrivateThreads
 ```
 
+`ManageMessages` se usa para retirar mensajes no autorizados en canales informativos. Si falta, el bot debe seguir encendido y registrar una advertencia.
+
 No se debe depender de `Administrator`.
 
 ## Canales Informativos

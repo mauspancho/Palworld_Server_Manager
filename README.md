@@ -108,6 +108,8 @@ CreatePublicThreads
 CreatePrivateThreads
 ```
 
+`ManageMessages` permite borrar mensajes no autorizados en canales informativos. Si falta, el bot arrancara con advertencia y esa limpieza quedara deshabilitada hasta corregir permisos.
+
 No dependas de `Administrator`. El rol del bot debe estar por encima de `MEMBER_ROLE_ID`, `PENDING_MEMBER_ROLE_ID`, roles de self-roles, roles de gremios y cuarentena.
 
 ## Aceptacion De Reglas
