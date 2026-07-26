@@ -191,7 +191,7 @@ describe("breeding panel", () => {
     }, process.cwd());
 
     expect(handled).toBe(true);
-    expect(deferred[0]).toMatchObject({ flags: 64 });
+    expect(deferred[0]).toMatchObject({ ephemeral: true });
     expect(JSON.stringify(edits[0])).toContain("Anubis");
   });
 
@@ -230,7 +230,7 @@ describe("breeding panel", () => {
     }, process.cwd());
 
     expect(handled).toBe(true);
-    expect(deferred[0]).toMatchObject({ flags: 64 });
+    expect(deferred[0]).toMatchObject({ ephemeral: true });
     expect(JSON.stringify(edits[0])).toContain("Blazamut + Dualith = Anubis");
   });
 

@@ -4,7 +4,10 @@ import {
   ChatInputCommandInteraction,
   Interaction,
   MessageFlags,
-  StringSelectMenuInteraction
+  StringSelectMenuInteraction,
+  type ActionRowBuilder,
+  type ButtonBuilder,
+  type StringSelectMenuBuilder
 } from "discord.js";
 import type { BotEnv } from "./bot-config.js";
 import { botEnvSecrets } from "./bot-config.js";
@@ -26,7 +29,6 @@ import {
   defaultBreedingPage,
   parseBreedingFilter
 } from "./breeding-components.js";
-import { readBreedingPanelState } from "./breeding-state.js";
 import { OperationLogger } from "./logger.js";
 import path from "node:path";
 
@@ -41,7 +43,7 @@ export async function handleBreedingInteraction(interaction: Interaction, env: B
     await handleBreedingCommand(interaction, env, rootDir).catch((error) => handleBreedingFailure(interaction, env, rootDir, error));
     return true;
   }
-  if (interaction.isStringSelectMenu() && interaction.customId.startsWith(breedingCustomIdPrefix)) {
+  if (interaction.isStringSelectMenu() && isBreedingMenuInteraction(interaction, env)) {
     await handleBreedingSelect(interaction, env, rootDir).catch((error) => handleBreedingFailure(interaction, env, rootDir, error));
     return true;
   }
@@ -72,11 +74,9 @@ async function handleBreedingCommand(interaction: ChatInputCommandInteraction, e
 }
 
 async function handleBreedingSelect(interaction: StringSelectMenuInteraction, env: BotEnv, rootDir: string): Promise<void> {
-  const isPalSelection = interaction.customId.startsWith(breedingPalSelectPrefix);
-  if (isPalSelection) {
-    await deferEphemeral(interaction);
-  }
+  await deferEphemeral(interaction);
 
+  const isPalSelection = interaction.customId.startsWith(breedingPalSelectPrefix);
   if (!(await validateBreedingInteractionLocation(interaction, env))) {
     return;
   }
@@ -95,7 +95,7 @@ async function handleBreedingSelect(interaction: StringSelectMenuInteraction, en
   if (interaction.customId.startsWith(breedingPageSelectPrefix)) {
     const filter = parseBreedingFilter(interaction.customId.slice(breedingPageSelectPrefix.length));
     const pageId = interaction.values[0] ?? defaultBreedingPage;
-    await replyOrUpdateBrowse(interaction, catalog, filter, pageId, rootDir);
+    await replyOrUpdateBrowse(interaction, catalog, filter, pageId);
     return;
   }
 
@@ -112,7 +112,13 @@ async function handleBreedingSelect(interaction: StringSelectMenuInteraction, en
       return;
     }
     await replyBreedingResult(interaction, env, rootDir, pal.name, parseBreedingFilter(filterValue ?? "all"), "panel", pageId ?? defaultBreedingPage);
+    return;
   }
+
+  await interaction.editReply({
+    content: "Este panel de crianza esta desactualizado. Usa el panel publicado mas reciente.",
+    components: buildBreedingBrowsePayload(catalog, "all", defaultBreedingPage).components
+  });
 }
 
 async function handleBreedingButton(interaction: ButtonInteraction, env: BotEnv, rootDir: string): Promise<void> {
@@ -203,22 +209,10 @@ async function replyOrUpdateBrowse(
   interaction: StringSelectMenuInteraction,
   catalog: Awaited<ReturnType<typeof loadBreedingCatalog>>,
   filter: "all" | "verified" | "legacy",
-  pageId: string,
-  rootDir: string
+  pageId: string
 ): Promise<void> {
-  const state = await readBreedingPanelState(rootDir).catch(() => null);
   const payload = buildBreedingBrowsePayload(catalog, filter, pageId);
-  if (state?.messageId === interaction.message.id) {
-    await interaction.reply({ ...payload, flags: MessageFlags.Ephemeral });
-    return;
-  }
-  if (interaction.replied || interaction.deferred) {
-    await interaction.followUp({ ...payload, flags: MessageFlags.Ephemeral });
-    return;
-  }
-  await interaction.update(payload).catch(async () => {
-    await interaction.reply({ ...payload, flags: MessageFlags.Ephemeral });
-  });
+  await replyOrEditEphemeral(interaction, payload);
 }
 
 async function logBreedingUse(rootDir: string, env: BotEnv, message: string, details?: unknown): Promise<void> {
@@ -227,7 +221,7 @@ async function logBreedingUse(rootDir: string, env: BotEnv, message: string, det
 
 async function replyOrEditEphemeral(
   interaction: ChatInputCommandInteraction | StringSelectMenuInteraction,
-  payload: string | { content: string; components?: ReturnType<typeof buildBreedingResultActions> }
+  payload: string | { content: string; components?: Array<ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>> | ReturnType<typeof buildBreedingResultActions> }
 ): Promise<void> {
   const response = typeof payload === "string" ? { content: payload } : payload;
   if (interaction.deferred && !interaction.replied) {
@@ -243,7 +237,7 @@ async function replyOrEditEphemeral(
 
 async function deferEphemeral(interaction: ChatInputCommandInteraction | StringSelectMenuInteraction): Promise<void> {
   if (!interaction.deferred && !interaction.replied) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({ ephemeral: true });
   }
 }
 
@@ -270,4 +264,8 @@ async function handleBreedingFailure(
 ): Promise<void> {
   await logBreedingUse(rootDir, env, "Error procesando interaccion de crianza.", { error: sanitizeSecret(error, botEnvSecrets(env)) });
   await respondToBreedingInteraction(interaction, unavailableMessage).catch(() => undefined);
+}
+
+function isBreedingMenuInteraction(interaction: StringSelectMenuInteraction, env: BotEnv): boolean {
+  return interaction.customId.startsWith(breedingCustomIdPrefix) || Boolean(env.BREEDING_CHANNEL_ID && interaction.channelId === env.BREEDING_CHANNEL_ID);
 }
