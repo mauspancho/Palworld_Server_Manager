@@ -13,6 +13,10 @@ export interface PublishBreedingPanelResult {
   permissionErrors: string[];
 }
 
+export function decideBreedingPublishAction(stateExists: boolean, messageExists: boolean): "create" | "update" {
+  return stateExists && messageExists ? "update" : "create";
+}
+
 export async function publishBreedingPanel(
   rootDir: string,
   guild: Guild,

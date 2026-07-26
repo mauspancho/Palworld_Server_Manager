@@ -1,10 +1,13 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { PermissionFlagsBits } from "discord.js";
+import { describe, expect, it, vi } from "vitest";
 import { writeJsonAtomic, readJsonFile } from "../src/atomic-json.js";
 import { detectRaidRisk } from "../src/anti-raid.js";
 import { slashCommandDefinitions } from "../src/commands-definitions.js";
+import { commandAccessLevel, restrictedCommandNames, publicCommandNames } from "../src/command-access.js";
+import { handleBotInteraction } from "../src/bot-interactions.js";
 import { loadDesiredStructure } from "../src/config.js";
 import { validateFutureEventDate, dueReminderMinutes } from "../src/events-logic.js";
 import { loadGuildsConfig } from "../src/guilds-config.js";
@@ -162,6 +165,31 @@ describe("commands and atomic writes", () => {
     expect(breeding?.options?.[0]).toMatchObject({ name: "pal", autocomplete: true });
   });
 
+  it("classifies public and restricted slash commands with default permissions", () => {
+    const commands = new Map(slashCommandDefinitions().map((command) => [command.name, command]));
+
+    expect(commandAccessLevel("crianza")).toBe("public");
+    expect(commandAccessLevel("crianza-panel")).toBe("administrator");
+    expect(publicCommandNames()).toContain("crianza");
+    expect(restrictedCommandNames()).toContain("crianza-panel");
+    expect(commands.get("crianza")?.default_member_permissions).toBeUndefined();
+    expect(commands.get("crianza-panel")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
+    expect(commands.get("informacion")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
+    expect(commands.get("palworld")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
+    const palworldOptions = commands.get("palworld")?.options?.map((option) => option.name) ?? [];
+    expect(palworldOptions).toEqual(expect.arrayContaining(["iniciar", "detener", "reiniciar-ahora"]));
+  });
+
+  it("rejects normal users and allows admins for restricted runtime commands", async () => {
+    const normal = commandInteraction("palworld", []);
+    await handleBotInteraction(normal as any, botEnv(), process.cwd());
+    expect(normal.reply).toHaveBeenCalledWith({ content: "No tienes permisos para utilizar este comando.", flags: 64 });
+
+    const admin = commandInteraction("palworld", ["Admin"]);
+    await handleBotInteraction(admin as any, botEnv(), process.cwd());
+    expect(admin.reply).toHaveBeenCalledWith({ content: "Control Palworld bloqueado mientras PALWORLD_CONTROL_ENABLED=false.", flags: 64 });
+  });
+
   it("writes JSON atomically", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "palworld-manager-"));
     const file = path.join(dir, "data.json");
@@ -170,3 +198,47 @@ describe("commands and atomic writes", () => {
     expect(await readJsonFile(file, { ok: false })).toEqual({ ok: true });
   });
 });
+
+function commandInteraction(commandName: string, roleNames: string[]) {
+  const reply = vi.fn(async () => undefined);
+  return {
+    guild: {
+      members: {
+        fetch: async () => memberWithRoles(roleNames)
+      }
+    },
+    guildId: "guild",
+    user: { id: "user", bot: false },
+    commandName,
+    member: memberWithRoles(roleNames),
+    reply,
+    isAutocomplete: () => false,
+    isChatInputCommand: () => true,
+    isStringSelectMenu: () => false,
+    isButton: () => false
+  };
+}
+
+function memberWithRoles(roleNames: string[]) {
+  return {
+    roles: {
+      cache: {
+        some: (predicate: (role: { name: string }) => boolean) => roleNames.some((name) => predicate({ name }))
+      }
+    }
+  };
+}
+
+function botEnv() {
+  return {
+    DISCORD_BOT_TOKEN: "secret",
+    DISCORD_GUILD_ID: "guild",
+    WELCOME_CHANNEL_ID: "welcome",
+    RULES_CHANNEL_ID: "rules",
+    ROLES_CHANNEL_ID: "roles",
+    GENERAL_CHAT_CHANNEL_ID: "general",
+    MEMBER_ROLE_ID: "member",
+    MEMBER_LOG_CHANNEL_ID: "log",
+    BREEDING_CHANNEL_ID: "breeding"
+  };
+}

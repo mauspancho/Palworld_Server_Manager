@@ -26,6 +26,7 @@ import { formatInformationRepairResult, repairInformationPermissions } from "./i
 import { OperationLogger } from "./logger.js";
 import { handleBreedingInteraction } from "./breeding-interactions.js";
 import { publishBreedingPanel } from "./breeding-publisher.js";
+import { commandAccessLevel, roleNamesForAccess } from "./command-access.js";
 
 export async function handleBotInteraction(interaction: Interaction, env: BotEnv, rootDir: string): Promise<boolean> {
   if (!interaction.guild || interaction.guildId !== env.DISCORD_GUILD_ID) {
@@ -54,6 +55,9 @@ export async function handleBotInteraction(interaction: Interaction, env: BotEnv
 }
 
 async function handleChatInput(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  if (!(await requireCommandAccessOrReply(interaction))) {
+    return;
+  }
   switch (interaction.commandName) {
     case "gremio":
       await handleGuildCommand(interaction, rootDir);
@@ -90,6 +94,14 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
       }
       return;
   }
+}
+
+async function requireCommandAccessOrReply(interaction: ChatInputCommandInteraction): Promise<boolean> {
+  const requiredRoles = roleNamesForAccess(commandAccessLevel(interaction.commandName));
+  if (requiredRoles.length === 0) {
+    return true;
+  }
+  return requireRolesOrReply(interaction, requiredRoles);
 }
 
 async function handleBreedingPanelCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
@@ -243,6 +255,6 @@ async function requireRolesOrReply(interaction: ChatInputCommandInteraction, rol
   if (memberHasAnyRole(member, roleNames)) {
     return true;
   }
-  await interaction.reply({ content: "No tienes permisos para usar este comando.", flags: MessageFlags.Ephemeral });
+  await interaction.reply({ content: "No tienes permisos para utilizar este comando.", flags: MessageFlags.Ephemeral });
   return false;
 }

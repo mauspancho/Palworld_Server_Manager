@@ -156,12 +156,12 @@ export function renderBreedingResult(result: BreedingQueryResult, sources: Breed
   lines.push(filterTitle(result.filter), "");
 
   if (result.combinations.length === 0) {
-    lines.push("No hay combinaciones disponibles con este filtro.");
+    lines.push("No hay combinaciones registradas para este Pal.");
     return lines.join("\n");
   }
 
   result.combinations.forEach((combination, index) => {
-    lines.push(`${index + 1}. ${formatParent(combination.parent1)} x ${formatParent(combination.parent2)} (${statusLabel(combination.verificationStatus)})`);
+    lines.push(`${index + 1}. ${formatParent(combination.parent1)} + ${formatParent(combination.parent2)} = ${result.pal.name} (${statusLabel(combination.verificationStatus)})`);
     lines.push(`   Fuente: ${combination.sources.map((source) => sources[source].label).join(", ")}`);
     lines.push(`   Actualizacion: ${formatSourceDates(combination, sources)}`);
   });

@@ -5,9 +5,10 @@ import {
   REST
 } from "discord.js";
 import type { BotEnv } from "./bot-config.js";
+import { applyDefaultCommandPermissions } from "./command-access.js";
 
 export function slashCommandDefinitions(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
-  return [
+  const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
     {
       name: "gremio",
       description: "Administrar gremios",
@@ -125,6 +126,7 @@ export function slashCommandDefinitions(): RESTPostAPIChatInputApplicationComman
     },
     { name: "vincular", description: "Generar codigo temporal de vinculacion" }
   ];
+  return commands.map(applyDefaultCommandPermissions);
 }
 
 export async function registerGuildCommands(env: BotEnv): Promise<number> {

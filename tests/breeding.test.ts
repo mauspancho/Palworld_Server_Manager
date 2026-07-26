@@ -20,6 +20,8 @@ import {
 import { buildBreedingBrowseComponents, buildBreedingPanelPayload } from "../src/breeding-components.js";
 import { readBreedingPanelState, writeBreedingPanelState } from "../src/breeding-state.js";
 import { validateBreedingChannelPermissions } from "../src/breeding-permissions.js";
+import { decideBreedingPublishAction } from "../src/breeding-publisher.js";
+import { handleBreedingInteraction } from "../src/breeding-interactions.js";
 import type { BreedingDataFile } from "../src/breeding-types.js";
 
 describe("breeding data", () => {
@@ -112,11 +114,13 @@ describe("breeding data", () => {
     const wumpoBotan = renderBreedingResult(queryBreedingPal(catalog, "Wumpo Botan")!, catalog.data.sources);
     const katress = renderBreedingResult(queryBreedingPal(catalog, "Katress Ignis")!, catalog.data.sources);
 
-    expect(anubis).toContain("Blazamut x Dualith");
+    expect(anubis).toContain("Blazamut + Dualith = Anubis");
     expect(anubis).toContain("Total: 3");
     expect(wumpoBotan).toContain("requiere verificacion");
-    expect(katress).toContain("Katress hembra x Wixen macho");
+    expect(katress).toContain("Katress hembra + Wixen macho = Katress Ignis");
     expect(katress).toContain("sexo indicado");
+    expect(renderBreedingResult(queryBreedingPal(catalog, "Katress Ignis", "verified")!, catalog.data.sources))
+      .toContain("No hay combinaciones registradas para este Pal.");
   });
 });
 
@@ -127,11 +131,17 @@ describe("breeding panel", () => {
 
     expect(payload.components).toHaveLength(3);
     expect(payload.components[0]!.components[0]!.toJSON().custom_id).toBe("breeding:filter");
+    for (const row of payload.components) {
+      const component = row.components[0]!.toJSON() as { options?: unknown[] };
+      expect(component.options?.length ?? 0).toBeLessThanOrEqual(25);
+    }
     for (const page of breedingPageRanges) {
       const select = buildBreedingBrowseComponents(catalog, "all", page.id)[2]!.components[0]!.toJSON();
       expect(select.options.length).toBeGreaterThan(0);
       expect(select.options.length).toBeLessThanOrEqual(25);
     }
+    const firstPage = buildBreedingBrowseComponents(catalog, "all", "a-d")[2]!.components[0]!.toJSON();
+    expect(firstPage.options.map((option) => option.label)).toEqual(expect.arrayContaining(["Aegidron", "Anubis"]));
   });
 
   it("persists panel state for idempotent repair", async () => {
@@ -144,6 +154,39 @@ describe("breeding panel", () => {
     });
 
     expect(await readBreedingPanelState(dir)).toMatchObject({ messageId: "message" });
+    expect(decideBreedingPublishAction(true, true)).toBe("update");
+    expect(decideBreedingPublishAction(true, false)).toBe("create");
+  });
+
+  it("answers /crianza queries ephemerally through the persistent handler", async () => {
+    const replies: unknown[] = [];
+    const handled = await handleBreedingInteraction({
+      commandName: "crianza",
+      guild: {},
+      guildId: "guild",
+      channelId: "breeding",
+      user: { id: "user", bot: false },
+      options: { getString: () => "Anubis" },
+      reply: async (payload: unknown) => { replies.push(payload); },
+      isAutocomplete: () => false,
+      isChatInputCommand: () => true,
+      isStringSelectMenu: () => false,
+      isButton: () => false
+    } as any, {
+      DISCORD_BOT_TOKEN: "secret",
+      DISCORD_GUILD_ID: "guild",
+      WELCOME_CHANNEL_ID: "welcome",
+      RULES_CHANNEL_ID: "rules",
+      ROLES_CHANNEL_ID: "roles",
+      GENERAL_CHAT_CHANNEL_ID: "general",
+      MEMBER_ROLE_ID: "member",
+      MEMBER_LOG_CHANNEL_ID: "log",
+      BREEDING_CHANNEL_ID: "breeding"
+    }, process.cwd());
+
+    expect(handled).toBe(true);
+    expect(replies[0]).toMatchObject({ flags: 64 });
+    expect(JSON.stringify(replies[0])).toContain("Anubis");
   });
 
   it("validates breeding channel permissions", () => {

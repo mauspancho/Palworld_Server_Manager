@@ -73,6 +73,31 @@ npm run breeding:repair
 
 Tambien existe `/crianza-panel reparar` para roles autorizados.
 
+## Visibilidad De Comandos Slash
+
+El registro de comandos reemplaza de forma determinista la lista del servidor con `commands:register`.
+
+Comandos publicos:
+
+- `/crianza`
+- `/estado`
+- `/sugerencia`
+- `/vincular`
+
+Comandos restringidos a moderacion:
+
+- `/gremio`
+- `/evento`
+- `/cuarentena`
+
+Comandos restringidos a administracion con `default_member_permissions=Administrator`:
+
+- `/palworld`
+- `/informacion`
+- `/crianza-panel`
+
+`/palworld` contiene acciones como `iniciar`, `detener` y `reiniciar-ahora`, por lo que queda oculto para usuarios normales en el selector slash. El manejador global conserva una segunda validacion y responde de forma efimera si alguien intenta ejecutar una interaccion antigua o manipulada.
+
 El rol del bot debe estar por encima de:
 
 - MEMBER_ROLE_ID
