@@ -7,7 +7,6 @@ import {
   autocompleteBreedingPals,
   breedingCombinationKey,
   breedingDataPath,
-  breedingPageRanges,
   createBreedingCatalog,
   filterPals,
   loadBreedingCatalog,
@@ -125,23 +124,21 @@ describe("breeding data", () => {
 });
 
 describe("breeding panel", () => {
-  it("builds stable persistent components and reaches every page without exceeding 25 options", async () => {
+  it("builds the complete pal list without alphabetical page selectors", async () => {
     const catalog = await loadBreedingCatalog(process.cwd());
     const payload = buildBreedingPanelPayload(catalog);
 
-    expect(payload.components).toHaveLength(2);
-    expect(payload.components[0]!.components[0]!.toJSON().custom_id).toBe("breeding:page:all");
+    expect(payload.components).toHaveLength(4);
     for (const row of payload.components) {
       const component = row.components[0]!.toJSON() as { options?: unknown[] };
       expect(component.options?.length ?? 0).toBeLessThanOrEqual(25);
     }
-    for (const page of breedingPageRanges) {
-      const select = buildBreedingBrowseComponents(catalog, "all", page.id)[1]!.components[0]!.toJSON();
-      expect(select.options.length).toBeGreaterThan(0);
-      expect(select.options.length).toBeLessThanOrEqual(25);
-    }
-    const firstPage = buildBreedingBrowseComponents(catalog, "all", "a-d")[1]!.components[0]!.toJSON();
-    expect(firstPage.options.map((option) => option.label)).toEqual(expect.arrayContaining(["Aegidron", "Anubis"]));
+    const selects = buildBreedingBrowseComponents(catalog, "all", "ignored").map((row) => row.components[0]!.toJSON());
+    expect(selects.map((select) => select.custom_id)).toEqual(["breeding:pal:all:0", "breeding:pal:all:1", "breeding:pal:all:2", "breeding:pal:all:3"]);
+    const labels = selects.flatMap((select) => select.options.map((option) => option.label));
+    expect(labels).toHaveLength(filterPals(catalog, "all").length);
+    expect(new Set(labels).size).toBe(labels.length);
+    expect(labels).toEqual(expect.arrayContaining(["Aegidron", "Anubis", "Wumpo Botan"]));
   });
 
   it("persists panel state for idempotent repair", async () => {
@@ -232,6 +229,82 @@ describe("breeding panel", () => {
     expect(handled).toBe(true);
     expect(deferred[0]).toMatchObject({ ephemeral: true });
     expect(JSON.stringify(edits[0])).toContain("Blazamut + Dualith = Anubis");
+  });
+
+  it("defers the back button before rebuilding the pal list", async () => {
+    const deferred: unknown[] = [];
+    const edits: unknown[] = [];
+    const interaction: any = {
+      customId: "breeding:back:all:a-d",
+      guild: {},
+      guildId: "guild",
+      channelId: "breeding",
+      user: { id: "user", bot: false },
+      deferred: false,
+      replied: false,
+      deferUpdate: async () => { deferred.push("deferred"); interaction.deferred = true; },
+      editReply: async (payload: unknown) => { edits.push(payload); },
+      reply: async (payload: unknown) => { edits.push(payload); },
+      followUp: async (payload: unknown) => { edits.push(payload); },
+      isAutocomplete: () => false,
+      isChatInputCommand: () => false,
+      isStringSelectMenu: () => false,
+      isButton: () => true
+    };
+
+    const handled = await handleBreedingInteraction(interaction, {
+      DISCORD_BOT_TOKEN: "secret",
+      DISCORD_GUILD_ID: "guild",
+      WELCOME_CHANNEL_ID: "welcome",
+      RULES_CHANNEL_ID: "rules",
+      ROLES_CHANNEL_ID: "roles",
+      GENERAL_CHAT_CHANNEL_ID: "general",
+      MEMBER_ROLE_ID: "member",
+      MEMBER_LOG_CHANNEL_ID: "log",
+      BREEDING_CHANNEL_ID: "breeding"
+    }, process.cwd());
+
+    expect(handled).toBe(true);
+    expect(deferred).toEqual(["deferred"]);
+    expect(JSON.stringify(edits[0])).toContain("Selecciona el Pal");
+  });
+
+  it("defers the close button before closing the ephemeral result", async () => {
+    const deferred: unknown[] = [];
+    const edits: unknown[] = [];
+    const interaction: any = {
+      customId: "breeding:close",
+      guild: {},
+      guildId: "guild",
+      channelId: "breeding",
+      user: { id: "user", bot: false },
+      deferred: false,
+      replied: false,
+      deferUpdate: async () => { deferred.push("deferred"); interaction.deferred = true; },
+      editReply: async (payload: unknown) => { edits.push(payload); },
+      reply: async (payload: unknown) => { edits.push(payload); },
+      followUp: async (payload: unknown) => { edits.push(payload); },
+      isAutocomplete: () => false,
+      isChatInputCommand: () => false,
+      isStringSelectMenu: () => false,
+      isButton: () => true
+    };
+
+    const handled = await handleBreedingInteraction(interaction, {
+      DISCORD_BOT_TOKEN: "secret",
+      DISCORD_GUILD_ID: "guild",
+      WELCOME_CHANNEL_ID: "welcome",
+      RULES_CHANNEL_ID: "rules",
+      ROLES_CHANNEL_ID: "roles",
+      GENERAL_CHAT_CHANNEL_ID: "general",
+      MEMBER_ROLE_ID: "member",
+      MEMBER_LOG_CHANNEL_ID: "log",
+      BREEDING_CHANNEL_ID: "breeding"
+    }, process.cwd());
+
+    expect(handled).toBe(true);
+    expect(deferred).toEqual(["deferred"]);
+    expect(edits[0]).toMatchObject({ content: "Consulta cerrada.", components: [] });
   });
 
   it("validates breeding channel permissions", () => {

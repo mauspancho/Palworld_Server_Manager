@@ -93,9 +93,7 @@ async function handleBreedingSelect(interaction: StringSelectMenuInteraction, en
   }
 
   if (interaction.customId.startsWith(breedingPageSelectPrefix)) {
-    const filter = parseBreedingFilter(interaction.customId.slice(breedingPageSelectPrefix.length));
-    const pageId = interaction.values[0] ?? defaultBreedingPage;
-    await replyOrUpdateBrowse(interaction, catalog, filter, pageId);
+    await replyOrUpdateBrowse(interaction, catalog, "all", defaultBreedingPage);
     return;
   }
 
@@ -122,9 +120,18 @@ async function handleBreedingSelect(interaction: StringSelectMenuInteraction, en
 }
 
 async function handleBreedingButton(interaction: ButtonInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  await deferButtonUpdate(interaction);
+
   if (!(await validateBreedingInteractionLocation(interaction, env))) {
     return;
   }
+  if (interaction.user.bot) {
+    if (interaction.deferred && !interaction.replied) {
+      await interaction.editReply("Interaccion ignorada.");
+    }
+    return;
+  }
+
   const catalog = await safeLoadCatalog(interaction, env, rootDir);
   if (!catalog) {
     return;
@@ -132,12 +139,14 @@ async function handleBreedingButton(interaction: ButtonInteraction, env: BotEnv,
 
   if (interaction.customId.startsWith(breedingBackPrefix)) {
     const [, , filterValue, pageId] = interaction.customId.split(":");
-    await interaction.update(buildBreedingBrowsePayload(catalog, parseBreedingFilter(filterValue ?? "all"), pageId ?? defaultBreedingPage));
+    await interaction.editReply(buildBreedingBrowsePayload(catalog, parseBreedingFilter(filterValue ?? "all"), pageId ?? defaultBreedingPage));
     return;
   }
   if (interaction.customId === breedingCloseId) {
-    await interaction.update({ content: "Consulta cerrada.", components: [] });
+    await interaction.editReply({ content: "Consulta cerrada.", components: [] });
+    return;
   }
+  await interaction.editReply("Este boton de crianza esta desactualizado. Usa el panel publicado mas reciente.");
 }
 
 async function replyBreedingResult(
@@ -238,6 +247,12 @@ async function replyOrEditEphemeral(
 async function deferEphemeral(interaction: ChatInputCommandInteraction | StringSelectMenuInteraction): Promise<void> {
   if (!interaction.deferred && !interaction.replied) {
     await interaction.deferReply({ ephemeral: true });
+  }
+}
+
+async function deferButtonUpdate(interaction: ButtonInteraction): Promise<void> {
+  if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferUpdate();
   }
 }
 

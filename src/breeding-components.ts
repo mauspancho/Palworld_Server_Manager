@@ -5,8 +5,8 @@ import {
   EmbedBuilder,
   StringSelectMenuBuilder
 } from "discord.js";
-import type { BreedingCatalog, BreedingFilter } from "./breeding-types.js";
-import { breedingPageRanges, palsForPage } from "./breeding-service.js";
+import type { BreedingCatalog, BreedingFilter, BreedingPalRecord } from "./breeding-types.js";
+import { filterPals } from "./breeding-service.js";
 
 export const breedingCustomIdPrefix = "breeding:";
 export const breedingPageSelectPrefix = `${breedingCustomIdPrefix}page:`;
@@ -15,6 +15,7 @@ export const breedingBackPrefix = `${breedingCustomIdPrefix}back:`;
 export const breedingCloseId = `${breedingCustomIdPrefix}close`;
 export const defaultBreedingFilter: BreedingFilter = "all";
 export const defaultBreedingPage = "a-d";
+const maxSelectOptions = 25;
 
 export function buildBreedingPanelPayload(catalog: BreedingCatalog): {
   embeds: EmbedBuilder[];
@@ -30,11 +31,11 @@ export function buildBreedingBrowsePayload(catalog: BreedingCatalog, filter: Bre
   content: string;
   components: ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[];
 } {
-  const pals = palsForPage(catalog, filter, pageId);
+  const pals = filterPals(catalog, filter);
   return {
     content: pals.length > 0
       ? "Selecciona el Pal que deseas obtener."
-      : "No hay Pals disponibles para ese filtro y pagina.",
+      : "No hay Pals disponibles.",
     components: buildBreedingBrowseComponents(catalog, filter, pageId)
   };
 }
@@ -60,9 +61,9 @@ export function buildBreedingPanelEmbed(catalog: BreedingCatalog): EmbedBuilder 
     .setDescription([
       "Selecciona el Pal que deseas obtener para consultar todas las combinaciones disponibles.",
       "",
-      "Las combinaciones estan clasificadas segun su fuente y estado de verificacion.",
+      "La lista completa esta repartida en varios menus porque Discord limita cada desplegable a 25 opciones.",
       "",
-      "Algunas combinaciones proceden de una fuente anterior a Palworld 1.0 y deben confirmarse antes de iniciar una cadena extensa de crianza."
+      "Algunas combinaciones deben confirmarse antes de iniciar una cadena extensa de crianza."
     ].join("\n"))
     .addFields(
       { name: "Pals disponibles", value: String(catalog.pals.length), inline: true },
@@ -74,29 +75,14 @@ export function buildBreedingPanelEmbed(catalog: BreedingCatalog): EmbedBuilder 
 export function buildBreedingBrowseComponents(
   catalog: BreedingCatalog,
   filter: BreedingFilter,
-  pageId: string
+  _pageId: string
 ): ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] {
-  return [
-    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(buildPageSelect(filter, pageId)),
-    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(buildPalSelect(catalog, filter, pageId))
-  ];
+  return chunkPals(filterPals(catalog, filter), maxSelectOptions)
+    .slice(0, 5)
+    .map((pals, index) => new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(buildPalSelect(pals, filter, index)));
 }
 
-export function buildPageSelect(filter: BreedingFilter, selectedPage: string): StringSelectMenuBuilder {
-  return new StringSelectMenuBuilder()
-    .setCustomId(`${breedingPageSelectPrefix}${filter}`)
-    .setPlaceholder("Elegir pagina")
-    .setMinValues(1)
-    .setMaxValues(1)
-    .addOptions(breedingPageRanges.map((page) => ({
-      label: page.label,
-      value: page.id,
-      default: page.id === selectedPage
-    })));
-}
-
-export function buildPalSelect(catalog: BreedingCatalog, filter: BreedingFilter, pageId: string): StringSelectMenuBuilder {
-  const pals = palsForPage(catalog, filter, pageId).slice(0, 25);
+export function buildPalSelect(pals: BreedingPalRecord[], filter: BreedingFilter, index: number): StringSelectMenuBuilder {
   const options = pals.length > 0
     ? pals.map((pal) => ({
         label: pal.name,
@@ -105,8 +91,8 @@ export function buildPalSelect(catalog: BreedingCatalog, filter: BreedingFilter,
       }))
     : [{ label: "Sin resultados", description: "Cambia el filtro o la pagina.", value: "none" }];
   return new StringSelectMenuBuilder()
-    .setCustomId(`${breedingPalSelectPrefix}${filter}:${pageId}`)
-    .setPlaceholder("Elegir Pal")
+    .setCustomId(`${breedingPalSelectPrefix}${filter}:${index}`)
+    .setPlaceholder(`Elegir Pal ${index + 1}`)
     .setMinValues(1)
     .setMaxValues(1)
     .setDisabled(pals.length === 0)
@@ -115,4 +101,12 @@ export function buildPalSelect(catalog: BreedingCatalog, filter: BreedingFilter,
 
 export function parseBreedingFilter(value: string): BreedingFilter {
   return value === "verified" || value === "legacy" ? value : "all";
+}
+
+function chunkPals(pals: BreedingPalRecord[], size: number): BreedingPalRecord[][] {
+  const chunks: BreedingPalRecord[][] = [];
+  for (let index = 0; index < pals.length; index += size) {
+    chunks.push(pals.slice(index, index + size));
+  }
+  return chunks.length > 0 ? chunks : [[]];
 }
