@@ -20,6 +20,7 @@ import {
 } from "./breeding-service.js";
 import {
   breedingBackPrefix,
+  breedingBrowsePagePrefix,
   breedingCloseId,
   breedingCustomIdPrefix,
   breedingPageSelectPrefix,
@@ -138,6 +139,11 @@ async function handleBreedingButton(interaction: ButtonInteraction, env: BotEnv,
   }
 
   if (interaction.customId.startsWith(breedingBackPrefix)) {
+    const [, , filterValue, pageId] = interaction.customId.split(":");
+    await interaction.editReply(buildBreedingBrowsePayload(catalog, parseBreedingFilter(filterValue ?? "all"), pageId ?? defaultBreedingPage));
+    return;
+  }
+  if (interaction.customId.startsWith(breedingBrowsePagePrefix)) {
     const [, , filterValue, pageId] = interaction.customId.split(":");
     await interaction.editReply(buildBreedingBrowsePayload(catalog, parseBreedingFilter(filterValue ?? "all"), pageId ?? defaultBreedingPage));
     return;

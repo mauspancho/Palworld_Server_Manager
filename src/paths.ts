@@ -1,11 +1,17 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CliContext } from "./domain.js";
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
+const packageRoot = path.resolve(sourceDir, "..");
 
 export function resolveRootDir(): string {
-  return process.cwd();
+  const cwd = process.cwd();
+  if (fs.existsSync(path.join(cwd, "package.json")) && fs.existsSync(path.join(cwd, "config"))) {
+    return cwd;
+  }
+  return packageRoot;
 }
 
 export function createContext(rootDir = resolveRootDir()): CliContext {

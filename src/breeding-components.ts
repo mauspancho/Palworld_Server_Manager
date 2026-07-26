@@ -11,10 +11,11 @@ import { filterPals } from "./breeding-service.js";
 export const breedingCustomIdPrefix = "breeding:";
 export const breedingPageSelectPrefix = `${breedingCustomIdPrefix}page:`;
 export const breedingPalSelectPrefix = `${breedingCustomIdPrefix}pal:`;
+export const breedingBrowsePagePrefix = `${breedingCustomIdPrefix}browse:`;
 export const breedingBackPrefix = `${breedingCustomIdPrefix}back:`;
 export const breedingCloseId = `${breedingCustomIdPrefix}close`;
 export const defaultBreedingFilter: BreedingFilter = "all";
-export const defaultBreedingPage = "a-d";
+export const defaultBreedingPage = "0";
 const maxSelectOptions = 25;
 
 export function buildBreedingPanelPayload(catalog: BreedingCatalog): {
@@ -75,11 +76,17 @@ export function buildBreedingPanelEmbed(catalog: BreedingCatalog): EmbedBuilder 
 export function buildBreedingBrowseComponents(
   catalog: BreedingCatalog,
   filter: BreedingFilter,
-  _pageId: string
+  pageId: string
 ): ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] {
-  return chunkPals(filterPals(catalog, filter), maxSelectOptions)
-    .slice(0, 5)
-    .map((pals, index) => new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(buildPalSelect(pals, filter, index)));
+  const pages = chunkPals(filterPals(catalog, filter), maxSelectOptions);
+  const pageIndex = parseBreedingPageIndex(pageId, pages.length);
+  const components: ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] = [
+    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(buildPalSelect(pages[pageIndex] ?? [], filter, pageIndex))
+  ];
+  if (pages.length > 1) {
+    components.push(buildBrowseButtons(filter, pageIndex, pages.length));
+  }
+  return components;
 }
 
 export function buildPalSelect(pals: BreedingPalRecord[], filter: BreedingFilter, index: number): StringSelectMenuBuilder {
@@ -92,7 +99,7 @@ export function buildPalSelect(pals: BreedingPalRecord[], filter: BreedingFilter
     : [{ label: "Sin resultados", description: "Cambia el filtro o la pagina.", value: "none" }];
   return new StringSelectMenuBuilder()
     .setCustomId(`${breedingPalSelectPrefix}${filter}:${index}`)
-    .setPlaceholder(`Elegir Pal ${index + 1}`)
+    .setPlaceholder("Elegir Pal")
     .setMinValues(1)
     .setMaxValues(1)
     .setDisabled(pals.length === 0)
@@ -109,4 +116,27 @@ function chunkPals(pals: BreedingPalRecord[], size: number): BreedingPalRecord[]
     chunks.push(pals.slice(index, index + size));
   }
   return chunks.length > 0 ? chunks : [[]];
+}
+
+function buildBrowseButtons(filter: BreedingFilter, pageIndex: number, pageCount: number): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`${breedingBrowsePagePrefix}${filter}:${Math.max(0, pageIndex - 1)}`)
+      .setLabel("Anterior")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(pageIndex <= 0),
+    new ButtonBuilder()
+      .setCustomId(`${breedingBrowsePagePrefix}${filter}:${Math.min(pageCount - 1, pageIndex + 1)}`)
+      .setLabel("Siguiente")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(pageIndex >= pageCount - 1)
+  );
+}
+
+export function parseBreedingPageIndex(pageId: string, pageCount: number): number {
+  const parsed = Number.parseInt(pageId, 10);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return 0;
+  }
+  return Math.min(parsed, Math.max(0, pageCount - 1));
 }

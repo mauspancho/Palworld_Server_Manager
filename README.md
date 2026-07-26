@@ -196,7 +196,7 @@ Tambien existe `/crianza-panel publicar` y `/crianza-panel reparar` para roles a
 /crianza pal:Anubis
 ```
 
-El comando incluye autocompletado y responde de forma efimera. El panel usa selectores persistentes de pagina alfabetica y Pal, por lo que sigue funcionando tras reiniciar el bot.
+El comando incluye autocompletado y responde de forma efimera. El panel usa un selector persistente de Pal con botones de navegacion, por lo que sigue funcionando tras reiniciar el bot.
 
 ## Scripts
 
@@ -255,6 +255,14 @@ npm run validate:all
 npm run info:repair
 npm run breeding:publish
 ```
+
+Si el servicio sale con `status=1/FAILURE`, revisa el mensaje real con:
+
+```sh
+journalctl -u palworld-server-manager -n 80 --no-pager
+```
+
+El servicio debe apuntar a la carpeta del proyecto con `WorkingDirectory=/home/maus/servers/Palworld_Server_Manager` para encontrar `.env`, `config/`, `state/` y `logs/`.
 
 Consulta:
 

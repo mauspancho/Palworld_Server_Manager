@@ -128,14 +128,21 @@ describe("breeding panel", () => {
     const catalog = await loadBreedingCatalog(process.cwd());
     const payload = buildBreedingPanelPayload(catalog);
 
-    expect(payload.components).toHaveLength(4);
-    for (const row of payload.components) {
-      const component = row.components[0]!.toJSON() as { options?: unknown[] };
-      expect(component.options?.length ?? 0).toBeLessThanOrEqual(25);
-    }
-    const selects = buildBreedingBrowseComponents(catalog, "all", "ignored").map((row) => row.components[0]!.toJSON());
-    expect(selects.map((select) => select.custom_id)).toEqual(["breeding:pal:all:0", "breeding:pal:all:1", "breeding:pal:all:2", "breeding:pal:all:3"]);
-    const labels = selects.flatMap((select) => select.options.map((option) => option.label));
+    expect(payload.components).toHaveLength(2);
+    const firstSelect = payload.components[0]!.components[0]!.toJSON();
+    expect(firstSelect.custom_id).toBe("breeding:pal:all:0");
+    expect(firstSelect.placeholder).toBe("Elegir Pal");
+    expect(firstSelect.options).toHaveLength(25);
+    expect(payload.components[1]!.components.map((component) => component.toJSON().custom_id))
+      .toEqual(["breeding:browse:all:0", "breeding:browse:all:1"]);
+
+    const labels = ["0", "1", "2", "3"]
+      .flatMap((pageId) => {
+        const select = buildBreedingBrowseComponents(catalog, "all", pageId)[0]!.components[0]!.toJSON();
+        expect(select.custom_id).toBe(`breeding:pal:all:${pageId}`);
+        expect(select.options.length).toBeLessThanOrEqual(25);
+        return select.options.map((option) => option.label);
+      });
     expect(labels).toHaveLength(filterPals(catalog, "all").length);
     expect(new Set(labels).size).toBe(labels.length);
     expect(labels).toEqual(expect.arrayContaining(["Aegidron", "Anubis", "Wumpo Botan"]));
@@ -267,6 +274,46 @@ describe("breeding panel", () => {
     expect(handled).toBe(true);
     expect(deferred).toEqual(["deferred"]);
     expect(JSON.stringify(edits[0])).toContain("Selecciona el Pal");
+  });
+
+  it("defers browse buttons before changing the visible pal page", async () => {
+    const deferred: unknown[] = [];
+    const edits: unknown[] = [];
+    const interaction: any = {
+      customId: "breeding:browse:all:1",
+      guild: {},
+      guildId: "guild",
+      channelId: "breeding",
+      user: { id: "user", bot: false },
+      deferred: false,
+      replied: false,
+      deferUpdate: async () => { deferred.push("deferred"); interaction.deferred = true; },
+      editReply: async (payload: unknown) => { edits.push(payload); },
+      reply: async (payload: unknown) => { edits.push(payload); },
+      followUp: async (payload: unknown) => { edits.push(payload); },
+      isAutocomplete: () => false,
+      isChatInputCommand: () => false,
+      isStringSelectMenu: () => false,
+      isButton: () => true
+    };
+
+    const handled = await handleBreedingInteraction(interaction, {
+      DISCORD_BOT_TOKEN: "secret",
+      DISCORD_GUILD_ID: "guild",
+      WELCOME_CHANNEL_ID: "welcome",
+      RULES_CHANNEL_ID: "rules",
+      ROLES_CHANNEL_ID: "roles",
+      GENERAL_CHAT_CHANNEL_ID: "general",
+      MEMBER_ROLE_ID: "member",
+      MEMBER_LOG_CHANNEL_ID: "log",
+      BREEDING_CHANNEL_ID: "breeding"
+    }, process.cwd());
+
+    const firstSelect = (edits[0] as any).components[0]!.components[0]!.toJSON();
+    expect(handled).toBe(true);
+    expect(deferred).toEqual(["deferred"]);
+    expect(firstSelect.custom_id).toBe("breeding:pal:all:1");
+    expect(firstSelect.placeholder).toBe("Elegir Pal");
   });
 
   it("defers the close button before closing the ephemeral result", async () => {
