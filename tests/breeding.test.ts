@@ -129,18 +129,18 @@ describe("breeding panel", () => {
     const catalog = await loadBreedingCatalog(process.cwd());
     const payload = buildBreedingPanelPayload(catalog);
 
-    expect(payload.components).toHaveLength(3);
-    expect(payload.components[0]!.components[0]!.toJSON().custom_id).toBe("breeding:filter");
+    expect(payload.components).toHaveLength(2);
+    expect(payload.components[0]!.components[0]!.toJSON().custom_id).toBe("breeding:page:all");
     for (const row of payload.components) {
       const component = row.components[0]!.toJSON() as { options?: unknown[] };
       expect(component.options?.length ?? 0).toBeLessThanOrEqual(25);
     }
     for (const page of breedingPageRanges) {
-      const select = buildBreedingBrowseComponents(catalog, "all", page.id)[2]!.components[0]!.toJSON();
+      const select = buildBreedingBrowseComponents(catalog, "all", page.id)[1]!.components[0]!.toJSON();
       expect(select.options.length).toBeGreaterThan(0);
       expect(select.options.length).toBeLessThanOrEqual(25);
     }
-    const firstPage = buildBreedingBrowseComponents(catalog, "all", "a-d")[2]!.components[0]!.toJSON();
+    const firstPage = buildBreedingBrowseComponents(catalog, "all", "a-d")[1]!.components[0]!.toJSON();
     expect(firstPage.options.map((option) => option.label)).toEqual(expect.arrayContaining(["Aegidron", "Anubis"]));
   });
 
@@ -159,7 +159,8 @@ describe("breeding panel", () => {
   });
 
   it("answers /crianza queries ephemerally through the persistent handler", async () => {
-    const replies: unknown[] = [];
+    const deferred: unknown[] = [];
+    const edits: unknown[] = [];
     const handled = await handleBreedingInteraction({
       commandName: "crianza",
       guild: {},
@@ -167,7 +168,11 @@ describe("breeding panel", () => {
       channelId: "breeding",
       user: { id: "user", bot: false },
       options: { getString: () => "Anubis" },
-      reply: async (payload: unknown) => { replies.push(payload); },
+      deferred: false,
+      replied: false,
+      deferReply: async (payload: unknown) => { deferred.push(payload); },
+      editReply: async (payload: unknown) => { edits.push(payload); },
+      reply: async (payload: unknown) => { edits.push(payload); },
       isAutocomplete: () => false,
       isChatInputCommand: () => true,
       isStringSelectMenu: () => false,
@@ -185,8 +190,8 @@ describe("breeding panel", () => {
     }, process.cwd());
 
     expect(handled).toBe(true);
-    expect(replies[0]).toMatchObject({ flags: 64 });
-    expect(JSON.stringify(replies[0])).toContain("Anubis");
+    expect(deferred[0]).toMatchObject({ flags: 64 });
+    expect(JSON.stringify(edits[0])).toContain("Anubis");
   });
 
   it("validates breeding channel permissions", () => {

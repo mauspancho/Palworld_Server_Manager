@@ -6,14 +6,12 @@ import {
   StringSelectMenuBuilder
 } from "discord.js";
 import type { BreedingCatalog, BreedingFilter } from "./breeding-types.js";
-import { breedingFilters, breedingPageRanges, palsForPage } from "./breeding-service.js";
+import { breedingPageRanges, palsForPage } from "./breeding-service.js";
 
 export const breedingCustomIdPrefix = "breeding:";
-export const breedingFilterSelectId = `${breedingCustomIdPrefix}filter`;
 export const breedingPageSelectPrefix = `${breedingCustomIdPrefix}page:`;
 export const breedingPalSelectPrefix = `${breedingCustomIdPrefix}pal:`;
 export const breedingBackPrefix = `${breedingCustomIdPrefix}back:`;
-export const breedingChangeFilterId = `${breedingCustomIdPrefix}filters`;
 export const breedingCloseId = `${breedingCustomIdPrefix}close`;
 export const defaultBreedingFilter: BreedingFilter = "all";
 export const defaultBreedingPage = "a-d";
@@ -49,10 +47,6 @@ export function buildBreedingResultActions(filter: BreedingFilter, pageId: strin
         .setLabel("Volver a la lista")
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
-        .setCustomId(breedingChangeFilterId)
-        .setLabel("Cambiar filtro")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
         .setCustomId(breedingCloseId)
         .setLabel("Cerrar")
         .setStyle(ButtonStyle.Danger)
@@ -83,24 +77,9 @@ export function buildBreedingBrowseComponents(
   pageId: string
 ): ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] {
   return [
-    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(buildFilterSelect(filter)),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(buildPageSelect(filter, pageId)),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(buildPalSelect(catalog, filter, pageId))
   ];
-}
-
-export function buildFilterSelect(selected: BreedingFilter): StringSelectMenuBuilder {
-  return new StringSelectMenuBuilder()
-    .setCustomId(breedingFilterSelectId)
-    .setPlaceholder("Elegir filtro")
-    .setMinValues(1)
-    .setMaxValues(1)
-    .addOptions(breedingFilters.map((filter) => ({
-      label: filter.label,
-      description: filter.description,
-      value: filter.id,
-      default: filter.id === selected
-    })));
 }
 
 export function buildPageSelect(filter: BreedingFilter, selectedPage: string): StringSelectMenuBuilder {

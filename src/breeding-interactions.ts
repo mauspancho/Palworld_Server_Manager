@@ -17,10 +17,8 @@ import {
 } from "./breeding-service.js";
 import {
   breedingBackPrefix,
-  breedingChangeFilterId,
   breedingCloseId,
   breedingCustomIdPrefix,
-  breedingFilterSelectId,
   breedingPageSelectPrefix,
   breedingPalSelectPrefix,
   buildBreedingBrowsePayload,
@@ -68,6 +66,7 @@ async function handleBreedingCommand(interaction: ChatInputCommandInteraction, e
   if (!(await validateBreedingInteractionLocation(interaction, env))) {
     return;
   }
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const palName = interaction.options.getString("pal", true);
   await replyBreedingResult(interaction, env, rootDir, palName, "all", "command");
 }
@@ -80,15 +79,13 @@ async function handleBreedingSelect(interaction: StringSelectMenuInteraction, en
     return;
   }
 
-  const catalog = await safeLoadCatalog(interaction, env, rootDir);
-  if (!catalog) {
-    return;
+  const isPalSelection = interaction.customId.startsWith(breedingPalSelectPrefix);
+  if (isPalSelection) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   }
 
-  if (interaction.customId === breedingFilterSelectId) {
-    const filter = parseBreedingFilter(interaction.values[0] ?? "all");
-    await interaction.reply({ ...buildBreedingBrowsePayload(catalog, filter, defaultBreedingPage), flags: MessageFlags.Ephemeral });
-    await logBreedingUse(rootDir, env, "Filtro de crianza usado.", { userId: interaction.user.id, filter });
+  const catalog = await safeLoadCatalog(interaction, env, rootDir);
+  if (!catalog) {
     return;
   }
 
@@ -99,16 +96,16 @@ async function handleBreedingSelect(interaction: StringSelectMenuInteraction, en
     return;
   }
 
-  if (interaction.customId.startsWith(breedingPalSelectPrefix)) {
+  if (isPalSelection) {
     const [, , filterValue, pageId] = interaction.customId.split(":");
     const palId = interaction.values[0];
     if (!palId || palId === "none") {
-      await interaction.reply({ content: "No hay Pal seleccionado.", flags: MessageFlags.Ephemeral });
+      await interaction.editReply("No hay Pal seleccionado.");
       return;
     }
     const pal = catalog.byId.get(palId);
     if (!pal) {
-      await interaction.reply({ content: "Ese Pal ya no existe en el archivo de crianza.", flags: MessageFlags.Ephemeral });
+      await interaction.editReply("Ese Pal ya no existe en el archivo de crianza.");
       return;
     }
     await replyBreedingResult(interaction, env, rootDir, pal.name, parseBreedingFilter(filterValue ?? "all"), "panel", pageId ?? defaultBreedingPage);
@@ -127,10 +124,6 @@ async function handleBreedingButton(interaction: ButtonInteraction, env: BotEnv,
   if (interaction.customId.startsWith(breedingBackPrefix)) {
     const [, , filterValue, pageId] = interaction.customId.split(":");
     await interaction.update(buildBreedingBrowsePayload(catalog, parseBreedingFilter(filterValue ?? "all"), pageId ?? defaultBreedingPage));
-    return;
-  }
-  if (interaction.customId === breedingChangeFilterId) {
-    await interaction.update(buildBreedingBrowsePayload(catalog, "all", defaultBreedingPage));
     return;
   }
   if (interaction.customId === breedingCloseId) {
@@ -153,13 +146,12 @@ async function replyBreedingResult(
   }
   const result = queryBreedingPal(catalog, palName, filter);
   if (!result) {
-    await interaction.reply({ content: `No encontre combinaciones para "${palName}".`, flags: MessageFlags.Ephemeral });
+    await replyOrEditEphemeral(interaction, `No encontre combinaciones para "${palName}".`);
     return;
   }
-  await interaction.reply({
+  await replyOrEditEphemeral(interaction, {
     content: renderBreedingResult(result, catalog.data.sources),
-    components: buildBreedingResultActions(filter, pageId),
-    flags: MessageFlags.Ephemeral
+    components: buildBreedingResultActions(filter, pageId)
   });
   await logBreedingUse(rootDir, env, "Consulta de crianza.", { userId: interaction.user.id, pal: result.pal.name, source, filter });
 }
@@ -192,7 +184,9 @@ async function safeLoadCatalog(
   } catch (error) {
     await logBreedingUse(rootDir, env, "Error cargando datos de crianza.", { error: sanitizeSecret(error, botEnvSecrets(env)) });
     const content = unavailableMessage;
-    if (interaction.replied || interaction.deferred) {
+    if (interaction.deferred && !interaction.replied) {
+      await interaction.editReply(content).catch(() => undefined);
+    } else if (interaction.replied || interaction.deferred) {
       await interaction.followUp({ content, flags: MessageFlags.Ephemeral }).catch(() => undefined);
     } else {
       await interaction.reply({ content, flags: MessageFlags.Ephemeral }).catch(() => undefined);
@@ -225,4 +219,20 @@ async function replyOrUpdateBrowse(
 
 async function logBreedingUse(rootDir: string, env: BotEnv, message: string, details?: unknown): Promise<void> {
   await new OperationLogger(path.join(rootDir, "logs"), botEnvSecrets(env)).log(message, details).catch(() => undefined);
+}
+
+async function replyOrEditEphemeral(
+  interaction: ChatInputCommandInteraction | StringSelectMenuInteraction,
+  payload: string | { content: string; components?: ReturnType<typeof buildBreedingResultActions> }
+): Promise<void> {
+  const response = typeof payload === "string" ? { content: payload } : payload;
+  if (interaction.deferred && !interaction.replied) {
+    await interaction.editReply(response);
+    return;
+  }
+  if (interaction.replied || interaction.deferred) {
+    await interaction.followUp({ ...response, flags: MessageFlags.Ephemeral });
+    return;
+  }
+  await interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
 }

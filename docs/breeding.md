@@ -57,11 +57,10 @@ El parametro `pal` tiene autocompletado. La busqueda ignora mayusculas, espacios
 
 El panel ofrece:
 
-- filtro por estado
 - pagina por rango de iniciales
 - selector de Pal
 - resultado efimero
-- botones para volver, cambiar filtro o cerrar
+- botones para volver a la lista o cerrar
 
 ## Permisos
 

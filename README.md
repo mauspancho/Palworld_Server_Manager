@@ -196,7 +196,7 @@ Tambien existe `/crianza-panel publicar` y `/crianza-panel reparar` para roles a
 /crianza pal:Anubis
 ```
 
-El comando incluye autocompletado y responde de forma efimera. El panel usa selectores persistentes de filtro, pagina y Pal, por lo que sigue funcionando tras reiniciar el bot.
+El comando incluye autocompletado y responde de forma efimera. El panel usa selectores persistentes de pagina alfabetica y Pal, por lo que sigue funcionando tras reiniciar el bot.
 
 ## Scripts
 
