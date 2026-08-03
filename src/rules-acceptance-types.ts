@@ -12,8 +12,16 @@ export interface RulesPromptRecord {
   updatedAt: string;
 }
 
+export interface RulesPanelRecord {
+  guildId: string;
+  channelId: string;
+  messageId: string;
+  updatedAt: string;
+}
+
 export interface RulesAcceptanceData {
   prompts: RulesPromptRecord[];
+  panel?: RulesPanelRecord;
 }
 
 export interface RulesAcceptanceResult {

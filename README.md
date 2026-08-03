@@ -6,7 +6,7 @@ Herramienta multiplataforma para administrar Discord y automatizaciones comunita
 
 - CLI administrativa: `validate`, `list`, `backup`, `plan`, `apply`, `restore`.
 - Bot permanente: bienvenida, DM de bienvenida, registro de entradas y asignacion segura de `MEMBER_ROLE_ID`.
-- Aceptacion de reglas: botones persistentes `Aceptar reglas` y `Rechazar reglas`, rol pendiente opcional y acceso al chat general solo tras aceptar.
+- Aceptacion de reglas: panel persistente unico en el canal de reglas, botones `Aceptar reglas` y `Rechazar reglas`, respuestas efimeras por usuario, rol pendiente opcional y acceso al chat general solo tras aceptar.
 - Canales informativos: permisos de solo lectura para bienvenida, reglas, anuncios, datos del servidor y seleccion de roles, con reparacion administrativa y proteccion secundaria.
 - Crianza Palworld: panel persistente, `/crianza` con autocompletado y datos locales versionados en `config/breeding-combinations.json`.
 - Self-roles: menus persistentes en `ROLES_CHANNEL_ID`.
@@ -118,10 +118,11 @@ Cuando un usuario entra:
 
 1. El bot envia bienvenida.
 2. Si `PENDING_MEMBER_ROLE_ID` esta configurado, asigna ese rol temporal.
-3. Publica en `RULES_CHANNEL_ID` un mensaje individual con botones persistentes:
+3. Publica o actualiza en `RULES_CHANNEL_ID` un panel unico con las reglas completas y botones persistentes:
    - `Aceptar reglas`
    - `Rechazar reglas`
-4. Al aceptar, asigna `MEMBER_ROLE_ID`, retira `PENDING_MEMBER_ROLE_ID` y muestra enlace/boton hacia `GENERAL_CHAT_CHANNEL_ID`.
+4. Al aceptar, responde solo de forma efimera al usuario, asigna `MEMBER_ROLE_ID`, retira `PENDING_MEMBER_ROLE_ID` y muestra enlace/boton hacia `GENERAL_CHAT_CHANNEL_ID`.
+5. No se crean mensajes publicos por cada usuario que acepta, para que el canal de reglas no quede enterrado por historial.
 5. Al rechazar, mantiene el acceso restringido y vuelve a mostrar los botones.
 
 Los botones usan IDs estables:

@@ -3,12 +3,13 @@ import {
   buildGeneralChatLinkRow,
   buildRulesAcceptedEmbed,
   buildRulesActionRow,
+  buildRulesPanelPayload,
   buildRulesPromptEmbed,
   rulesAcceptButtonId,
   rulesRejectButtonId
 } from "../src/rules-acceptance-components.js";
 import { calculateRejectCount, canProcessRulesPrompt, shouldShowAlreadyAccepted } from "../src/rules-acceptance-logic.js";
-import { findLatestPendingPromptForUser, findPromptByMessage, upsertRulesPrompt, type RulesAcceptanceData } from "../src/rules-acceptance-state.js";
+import { findLatestPendingPromptForUser, findLatestPromptForUser, findPromptByMessage, upsertRulesPanel, upsertRulesPrompt, type RulesAcceptanceData } from "../src/rules-acceptance-state.js";
 
 describe("rules acceptance components", () => {
   it("uses stable persistent button ids", () => {
@@ -33,6 +34,17 @@ describe("rules acceptance components", () => {
     const row = buildRulesActionRow(true).toJSON();
 
     expect(row.components.every((component) => component.disabled)).toBe(true);
+  });
+
+  it("builds a persistent rules panel with one action row", () => {
+    const payload = buildRulesPanelPayload();
+
+    expect(payload.embeds.length).toBeGreaterThan(1);
+    expect(payload.embeds[0]!.toJSON().title).toBe("Reglas de la comunidad");
+    expect(JSON.stringify(payload.embeds.map((embed) => embed.toJSON()))).toContain("XBOXPALSERVER");
+    expect(payload.components).toHaveLength(1);
+    expect(payload.components[0]!.toJSON().components.map((component) => component.custom_id))
+      .toEqual([rulesAcceptButtonId, rulesRejectButtonId]);
   });
 });
 
@@ -66,5 +78,40 @@ describe("rules acceptance state", () => {
 
     expect(findPromptByMessage(data, "message")?.userId).toBe("user");
     expect(findLatestPendingPromptForUser(data, "guild", "user")?.messageId).toBe("message");
+  });
+
+  it("stores one acceptance state per user for the shared rules panel", () => {
+    const data: RulesAcceptanceData = { prompts: [] };
+    upsertRulesPanel(data, {
+      guildId: "guild",
+      channelId: "rules",
+      messageId: "panel",
+      updatedAt: "2026-08-02T00:00:00.000Z"
+    });
+    upsertRulesPrompt(data, {
+      guildId: "guild",
+      userId: "user-a",
+      channelId: "rules",
+      messageId: "panel",
+      status: "pending",
+      rejectCount: 0,
+      createdAt: "2026-08-02T00:00:00.000Z",
+      updatedAt: "2026-08-02T00:00:00.000Z"
+    });
+    upsertRulesPrompt(data, {
+      guildId: "guild",
+      userId: "user-b",
+      channelId: "rules",
+      messageId: "panel",
+      status: "pending",
+      rejectCount: 1,
+      createdAt: "2026-08-02T00:00:00.000Z",
+      updatedAt: "2026-08-02T00:00:00.000Z"
+    });
+
+    expect(data.panel?.messageId).toBe("panel");
+    expect(data.prompts).toHaveLength(2);
+    expect(findLatestPromptForUser(data, "guild", "user-a")?.rejectCount).toBe(0);
+    expect(findLatestPromptForUser(data, "guild", "user-b")?.rejectCount).toBe(1);
   });
 });

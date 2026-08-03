@@ -11,16 +11,18 @@ import type { BotEnv } from "./bot-config.js";
 import {
   buildGeneralChatLinkRow,
   buildRulesAcceptedEmbed,
-  buildRulesActionRow,
+  buildRulesPanelPayload,
   buildRulesPromptEmbed,
   rulesAcceptButtonId,
   rulesRejectButtonId
 } from "./rules-acceptance-components.js";
 import { canProcessRulesPrompt, calculateRejectCount, shouldShowAlreadyAccepted } from "./rules-acceptance-logic.js";
 import {
+  findLatestPromptForUser,
   findLatestPendingPromptForUser,
   findPromptByMessage,
   readRulesAcceptanceData,
+  upsertRulesPanel,
   upsertRulesPrompt,
   writeRulesAcceptanceData
 } from "./rules-acceptance-state.js";
@@ -38,28 +40,51 @@ export async function publishRulesPromptForMember(member: GuildMember, env: BotE
   }
 
   const data = await readRulesAcceptanceData(rootDir);
+  const panel = await publishRulesPanel(member.guild, env, rootDir, data);
   if (findLatestPendingPromptForUser(data, member.guild.id, member.id)) {
     return;
   }
 
-  const rulesChannel = await fetchTextChannel(member.guild, env.RULES_CHANNEL_ID, "RULES_CHANNEL_ID");
-  const message = await rulesChannel.send({
-    content: `<@${member.id}>`,
-    embeds: [buildRulesPromptEmbed(member.id)],
-    components: [buildRulesActionRow(false)]
-  });
-
   upsertRulesPrompt(data, {
     guildId: member.guild.id,
     userId: member.id,
-    channelId: rulesChannel.id,
-    messageId: message.id,
+    channelId: panel.channelId,
+    messageId: panel.messageId,
     status: "pending",
     rejectCount: 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
   await writeRulesAcceptanceData(rootDir, data);
+}
+
+export async function publishRulesPanel(
+  guild: Guild,
+  env: BotEnv,
+  rootDir: string,
+  data?: Awaited<ReturnType<typeof readRulesAcceptanceData>>
+): Promise<{ action: "created" | "updated"; channelId: string; messageId: string }> {
+  data ??= await readRulesAcceptanceData(rootDir);
+  const rulesChannel = await fetchTextChannel(guild, env.RULES_CHANNEL_ID, "RULES_CHANNEL_ID");
+  const payload = buildRulesPanelPayload();
+  const existing = data.panel?.guildId === guild.id && data.panel.channelId === rulesChannel.id
+    ? await rulesChannel.messages.fetch(data.panel.messageId).catch(() => null)
+    : null;
+
+  const botUserId = guild.client.user?.id;
+  if (existing && (!botUserId || existing.author.id === botUserId)) {
+    const message = await existing.edit(payload);
+    const panel = { guildId: guild.id, channelId: rulesChannel.id, messageId: message.id, updatedAt: new Date().toISOString() };
+    upsertRulesPanel(data, panel);
+    await writeRulesAcceptanceData(rootDir, data);
+    return { action: "updated", channelId: panel.channelId, messageId: panel.messageId };
+  }
+
+  const message = await rulesChannel.send(payload);
+  const panel = { guildId: guild.id, channelId: rulesChannel.id, messageId: message.id, updatedAt: new Date().toISOString() };
+  upsertRulesPanel(data, panel);
+  await writeRulesAcceptanceData(rootDir, data);
+  return { action: "created", channelId: panel.channelId, messageId: panel.messageId };
 }
 
 export async function handleRulesButtonInteraction(interaction: ButtonInteraction, env: BotEnv, rootDir: string): Promise<void> {
@@ -73,34 +98,38 @@ export async function handleRulesButtonInteraction(interaction: ButtonInteractio
     return;
   }
 
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const data = await readRulesAcceptanceData(rootDir);
-  const prompt = findPromptByMessage(data, interaction.message.id);
-  if (!canProcessRulesPrompt(prompt?.userId, interaction.user.id)) {
-    await interaction.reply({ content: "Esta solicitud de reglas no corresponde a tu usuario.", flags: MessageFlags.Ephemeral });
+  const isPanelMessage = data.panel?.guildId === interaction.guild.id && data.panel.messageId === interaction.message.id;
+  const prompt = isPanelMessage
+    ? findLatestPromptForUser(data, interaction.guild.id, interaction.user.id)
+    : findPromptByMessage(data, interaction.message.id);
+  if (!isPanelMessage && !canProcessRulesPrompt(prompt?.userId, interaction.user.id)) {
+    await interaction.editReply("Esta solicitud de reglas no corresponde a tu usuario.");
     return;
   }
 
   const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
   if (!member) {
-    await interaction.reply({ content: "Ya no perteneces al servidor.", flags: MessageFlags.Ephemeral });
+    await interaction.editReply("Ya no perteneces al servidor.");
     return;
   }
 
   if (shouldShowAlreadyAccepted(member.roles.cache.has(env.MEMBER_ROLE_ID))) {
-    await interaction.reply({
+    await interaction.editReply({
       content: `Ya aceptaste las reglas y tienes acceso al servidor.\n\nIr al chat general: <#${env.GENERAL_CHAT_CHANNEL_ID}>`,
-      components: [buildGeneralChatLinkRow(interaction.guild.id, env.GENERAL_CHAT_CHANNEL_ID)],
-      flags: MessageFlags.Ephemeral
+      components: [buildGeneralChatLinkRow(interaction.guild.id, env.GENERAL_CHAT_CHANNEL_ID)]
     });
     return;
   }
 
+  const activePrompt = prompt ?? createRulesPromptRecord(interaction.guild.id, interaction.user.id, interaction.channelId, interaction.message.id);
   if (interaction.customId === rulesAcceptButtonId) {
-    await acceptRules(interaction, member, env, rootDir, data, prompt);
+    await acceptRules(interaction, member, env, rootDir, data, activePrompt);
     return;
   }
 
-  await rejectRules(interaction, member, env, rootDir, data, prompt);
+  await rejectRules(interaction, member, env, rootDir, data, activePrompt);
 }
 
 async function acceptRules(
@@ -118,10 +147,7 @@ async function acceptRules(
       action: "Error al aceptar reglas",
       details: validationError
     });
-    await interaction.reply({
-      content: "No fue posible completar la asignacion de acceso. Un administrador debe revisar los permisos del bot.",
-      flags: MessageFlags.Ephemeral
-    });
+    await interaction.editReply("No fue posible completar la asignacion de acceso. Un administrador debe revisar los permisos del bot.");
     return;
   }
 
@@ -134,10 +160,7 @@ async function acceptRules(
       action: "Error al aceptar reglas",
       details: `Asignacion de roles fallida: ${sanitizeSecret(error, botEnvSecrets(env))}`
     });
-    await interaction.reply({
-      content: "No fue posible completar la asignacion de acceso. Un administrador debe revisar los permisos del bot.",
-      flags: MessageFlags.Ephemeral
-    });
+    await interaction.editReply("No fue posible completar la asignacion de acceso. Un administrador debe revisar los permisos del bot.");
     return;
   }
   const updatedPrompt = {
@@ -149,12 +172,7 @@ async function acceptRules(
   upsertRulesPrompt(data, updatedPrompt);
   await writeRulesAcceptanceData(rootDir, data);
 
-  await interaction.update({
-    embeds: [buildRulesAcceptedEmbed(member.id, env.GENERAL_CHAT_CHANNEL_ID)],
-    components: [buildRulesActionRow(true), buildGeneralChatLinkRow(interaction.guild!.id, env.GENERAL_CHAT_CHANNEL_ID)]
-  });
-
-  await interaction.followUp({
+  await interaction.editReply({
     content: [
       "Has aceptado correctamente las reglas del servidor.",
       "",
@@ -162,8 +180,8 @@ async function acceptRules(
       "",
       `Ir al chat general: <#${env.GENERAL_CHAT_CHANNEL_ID}>`
     ].join("\n"),
-    components: [buildGeneralChatLinkRow(interaction.guild!.id, env.GENERAL_CHAT_CHANNEL_ID)],
-    flags: MessageFlags.Ephemeral
+    embeds: [buildRulesAcceptedEmbed(member.id, env.GENERAL_CHAT_CHANNEL_ID)],
+    components: [buildGeneralChatLinkRow(interaction.guild!.id, env.GENERAL_CHAT_CHANNEL_ID)]
   });
 
   await logRulesEvent(interaction.guild!, env, {
@@ -190,26 +208,23 @@ async function rejectRules(
   upsertRulesPrompt(data, updatedPrompt);
   await writeRulesAcceptanceData(rootDir, data);
 
-  await interaction.update({
-    embeds: [buildRulesPromptEmbed(member.id, rejectCount)],
-    components: [buildRulesActionRow(false)]
-  });
-
-  await interaction.followUp({
+  await interaction.editReply({
     content: rejectCount === 1
       ? [
           "Has indicado que no aceptas las reglas del servidor.",
           "",
           "Para permanecer en esta comunidad es obligatorio aceptar las reglas. Si decides no aceptarlas, podras ser expulsado del servidor.",
           "",
-          "Revisa nuevamente las reglas y selecciona una opcion."
+          "Revisa nuevamente las reglas en el panel de este canal y presiona Aceptar reglas cuando estes listo."
         ].join("\n")
       : [
           "Las reglas son obligatorias para permanecer en el servidor.",
           "",
-          "Mientras no las aceptes, no tendras acceso a los canales generales y un administrador podra expulsarte del servidor."
+          "Mientras no las aceptes, no tendras acceso a los canales generales y un administrador podra expulsarte del servidor.",
+          "",
+          "El panel de reglas permanece disponible en este canal."
         ].join("\n"),
-    flags: MessageFlags.Ephemeral
+    embeds: [buildRulesPromptEmbed(member.id, rejectCount)]
   });
 
   await logRulesEvent(interaction.guild!, env, {
@@ -217,6 +232,20 @@ async function rejectRules(
     action: "Reglas rechazadas",
     details: `Cantidad de rechazos durante la sesion: ${rejectCount}.`
   });
+}
+
+function createRulesPromptRecord(guildId: string, userId: string, channelId: string | null, messageId: string): RulesPromptRecord {
+  const now = new Date().toISOString();
+  return {
+    guildId,
+    userId,
+    channelId: channelId ?? "",
+    messageId,
+    status: "pending",
+    rejectCount: 0,
+    createdAt: now,
+    updatedAt: now
+  };
 }
 
 async function assignAcceptedAccess(member: GuildMember, env: BotEnv): Promise<RulesAcceptanceResult> {

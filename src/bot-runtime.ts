@@ -26,6 +26,7 @@ import {
   assignPendingRoleIfConfigured,
   handleRulesButtonInteraction,
   isRulesButton,
+  publishRulesPanel,
   publishRulesPromptForMember
 } from "./rules-acceptance.js";
 
@@ -94,11 +95,21 @@ export function registerBotHandlers(client: Client, env: BotEnv, options: BotRun
 
   client.once("clientReady", async () => {
     safeLog(`Bot listo como ${client.user?.tag ?? "usuario desconocido"}.`);
-    await validateBotStartup(client, env, options.rootDir ?? process.cwd()).catch((error) => {
+    const rootDir = options.rootDir ?? process.cwd();
+    await validateBotStartup(client, env, rootDir).catch((error) => {
       safeError("Validacion inicial fallida.", error, env);
       process.exitCode = 1;
       void shutdownClient(client);
     });
+    if (process.exitCode) {
+      return;
+    }
+    const guild = await client.guilds.fetch(env.DISCORD_GUILD_ID).catch(() => null);
+    if (guild) {
+      await publishRulesPanel(guild, env, rootDir).then((result) => {
+        safeLog(`Panel de reglas ${result.action === "created" ? "publicado" : "actualizado"}: ${result.messageId}.`);
+      }).catch((error) => safeError("No se pudo publicar el panel de reglas.", error, env));
+    }
   });
 
   client.on("guildMemberAdd", async (member) => {
