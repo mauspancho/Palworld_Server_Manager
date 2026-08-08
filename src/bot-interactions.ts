@@ -13,8 +13,27 @@ import { sanitizeSecret } from "./errors.js";
 import { adminOrModeratorRoleNames, adminRoleNames, memberHasAnyRole } from "./command-permissions.js";
 import { booleanEnv, optionalEnv } from "./env-utils.js";
 import { loadGuildsConfig } from "./guilds-config.js";
-import { calculateUniqueGuildAssignment } from "./guilds-logic.js";
+import {
+  addGuildMember,
+  approveGuildRequest,
+  calculateUniqueGuildAssignment,
+  canManageGuildCommunity,
+  createGuildRequest,
+  rejectGuildRequest,
+  removeGuildMember
+} from "./guilds-logic.js";
 import { findGuildSlot, guildRoleNames } from "./guilds-publisher.js";
+import { ensureGuildCommunityResources } from "./guild-communities-publisher.js";
+import {
+  findActiveGuildForMember,
+  findGuildCommunityById,
+  findOwnedActiveGuild,
+  pendingGuildRequests,
+  readGuildCommunitiesData,
+  upsertGuildCommunity,
+  writeGuildCommunitiesData
+} from "./guilds-state.js";
+import type { GuildCommunityRecord } from "./guilds-types.js";
 import { buildStatusEmbed } from "./status-panel.js";
 import { SystemStatusProbe } from "./status-probe.js";
 import { loadStatusConfig } from "./status-config.js";
@@ -167,10 +186,44 @@ async function handleInformationCommand(interaction: ChatInputCommandInteraction
 
 async function handleGuildCommand(interaction: ChatInputCommandInteraction, rootDir: string): Promise<void> {
   const config = await loadGuildsConfig(rootDir);
-  if (!(await requireRolesOrReply(interaction, config.authorizedRoleNames))) {
+  if (!config.enabled) {
+    await interaction.reply({ content: "El modulo de gremios esta desactivado.", flags: MessageFlags.Ephemeral });
     return;
   }
   const sub = interaction.options.getSubcommand();
+  if (sub === "solicitar") {
+    await handleGuildRequestCommand(interaction, rootDir);
+    return;
+  }
+  if (sub === "solicitudes") {
+    if (!(await requireRolesOrReply(interaction, config.authorizedRoleNames))) {
+      return;
+    }
+    await handleGuildRequestsListCommand(interaction, rootDir);
+    return;
+  }
+  if (sub === "aprobar") {
+    if (!(await requireRolesOrReply(interaction, config.authorizedRoleNames))) {
+      return;
+    }
+    await handleGuildApproveCommand(interaction, rootDir);
+    return;
+  }
+  if (sub === "rechazar") {
+    if (!(await requireRolesOrReply(interaction, config.authorizedRoleNames))) {
+      return;
+    }
+    await handleGuildRejectCommand(interaction, rootDir);
+    return;
+  }
+  if (sub === "agregar" || sub === "eliminar") {
+    await handleGuildMembershipCommand(interaction, rootDir, sub);
+    return;
+  }
+
+  if (!(await requireRolesOrReply(interaction, config.authorizedRoleNames))) {
+    return;
+  }
   const user = interaction.options.getUser("usuario", sub !== "miembros");
   const guildValue = interaction.options.getString("gremio", sub === "asignar" || sub === "miembros");
   const roles = await interaction.guild!.roles.fetch();
@@ -205,6 +258,157 @@ async function handleGuildCommand(interaction: ChatInputCommandInteraction, root
     await member.roles.add(changes.addRoleId, "Comando /gremio");
   }
   await interaction.reply({ content: sub === "quitar" ? `Gremio retirado a ${user}.` : `Gremio asignado a ${user}.`, flags: MessageFlags.Ephemeral });
+}
+
+async function handleGuildRequestCommand(interaction: ChatInputCommandInteraction, rootDir: string): Promise<void> {
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const data = await readGuildCommunitiesData(rootDir);
+  const existing = findActiveGuildForMember(data, interaction.guild!.id, interaction.user.id);
+  if (existing) {
+    await interaction.editReply(`Ya perteneces al gremio "${existing.name}".`);
+    return;
+  }
+  const memberIds = optionalGuildRequestUsers(interaction)
+    .filter((user) => !user.bot)
+    .map((user) => user.id);
+  let request: GuildCommunityRecord;
+  try {
+    request = createGuildRequest(data, {
+      discordGuildId: interaction.guild!.id,
+      ownerId: interaction.user.id,
+      name: interaction.options.getString("nombre", true),
+      memberIds
+    });
+  } catch (error) {
+    await interaction.editReply(error instanceof Error ? error.message : String(error));
+    return;
+  }
+  upsertGuildCommunity(data, request);
+  await writeGuildCommunitiesData(rootDir, data);
+  await logGuildCommunityEvent(rootDir, interaction, "Solicitud de gremio creada.", { requestId: request.id, name: request.name, ownerId: request.ownerId, memberIds: request.memberIds });
+  await interaction.editReply([
+    `Solicitud enviada para crear el gremio "${request.name}".`,
+    `ID de solicitud: ${request.id}`,
+    "Un administrador debe aprobarla antes de crear los canales privados.",
+    "",
+    "Cuando sea aprobada, tu seras el lider y podras agregar o eliminar integrantes con `/gremio agregar` y `/gremio eliminar`."
+  ].join("\n"));
+}
+
+async function handleGuildRequestsListCommand(interaction: ChatInputCommandInteraction, rootDir: string): Promise<void> {
+  const data = await readGuildCommunitiesData(rootDir);
+  const pending = pendingGuildRequests(data, interaction.guild!.id);
+  await interaction.reply({
+    content: pending.length === 0
+      ? "No hay solicitudes pendientes de gremio."
+      : pending.map((request) => `${request.id} | ${request.name} | lider: <@${request.ownerId}> | integrantes iniciales: ${request.memberIds.map((id) => `<@${id}>`).join(", ")}`).join("\n"),
+    flags: MessageFlags.Ephemeral
+  });
+}
+
+async function handleGuildApproveCommand(interaction: ChatInputCommandInteraction, rootDir: string): Promise<void> {
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const config = await loadGuildsConfig(rootDir);
+  const data = await readGuildCommunitiesData(rootDir);
+  const requestId = interaction.options.getString("solicitud", true);
+  const request = findGuildCommunityById(data, requestId);
+  if (!request || request.discordGuildId !== interaction.guild!.id || request.status !== "pending") {
+    await interaction.editReply("Solicitud pendiente no encontrada.");
+    return;
+  }
+  const botUserId = interaction.client.user?.id;
+  if (!botUserId) {
+    await interaction.editReply("No se pudo identificar el bot.");
+    return;
+  }
+  const botMember = await interaction.guild!.members.fetch(botUserId);
+  const ensured = await ensureGuildCommunityResources(interaction.guild!, botMember, config, request);
+  const approved = approveGuildRequest(ensured.record, interaction.user.id);
+  for (const memberId of approved.memberIds) {
+    const member = await interaction.guild!.members.fetch(memberId).catch(() => null);
+    if (member && !member.user.bot && approved.roleId && !member.roles.cache.has(approved.roleId)) {
+      await member.roles.add(approved.roleId, "Gremio aprobado");
+    }
+  }
+  upsertGuildCommunity(data, approved);
+  await writeGuildCommunitiesData(rootDir, data);
+  await logGuildCommunityEvent(rootDir, interaction, "Solicitud de gremio aprobada.", { requestId, name: approved.name, roleId: approved.roleId, textChannelId: approved.textChannelId, voiceChannelId: approved.voiceChannelId });
+  await interaction.editReply([
+    `Gremio "${approved.name}" aprobado.`,
+    `Lider: <@${approved.ownerId}>`,
+    approved.textChannelId ? `Canal de texto: <#${approved.textChannelId}>` : "Canal de texto: no disponible",
+    approved.voiceChannelId ? `Canal de voz: <#${approved.voiceChannelId}>` : "Canal de voz: no disponible"
+  ].join("\n"));
+}
+
+async function handleGuildRejectCommand(interaction: ChatInputCommandInteraction, rootDir: string): Promise<void> {
+  const data = await readGuildCommunitiesData(rootDir);
+  const requestId = interaction.options.getString("solicitud", true);
+  const request = findGuildCommunityById(data, requestId);
+  if (!request || request.discordGuildId !== interaction.guild!.id || request.status !== "pending") {
+    await interaction.reply({ content: "Solicitud pendiente no encontrada.", flags: MessageFlags.Ephemeral });
+    return;
+  }
+  const rejected = rejectGuildRequest(request, interaction.user.id);
+  upsertGuildCommunity(data, rejected);
+  await writeGuildCommunitiesData(rootDir, data);
+  await logGuildCommunityEvent(rootDir, interaction, "Solicitud de gremio rechazada.", { requestId, name: rejected.name, ownerId: rejected.ownerId });
+  await interaction.reply({ content: `Solicitud "${rejected.name}" rechazada.`, flags: MessageFlags.Ephemeral });
+}
+
+async function handleGuildMembershipCommand(interaction: ChatInputCommandInteraction, rootDir: string, action: "agregar" | "eliminar"): Promise<void> {
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const config = await loadGuildsConfig(rootDir);
+  const data = await readGuildCommunitiesData(rootDir);
+  const actor = interaction.member instanceof GuildMember ? interaction.member : await interaction.guild!.members.fetch(interaction.user.id);
+  const owned = findOwnedActiveGuild(data, interaction.guild!.id, interaction.user.id);
+  const targetUser = interaction.options.getUser("usuario", true);
+  const managed = owned ?? (canUseAdminRoles(actor, config.authorizedRoleNames) ? findActiveGuildForMember(data, interaction.guild!.id, targetUser.id) : undefined);
+  if (!managed || !canManageGuildCommunity(managed, interaction.user.id, actor.roles.cache.map((role) => role.name), config.authorizedRoleNames)) {
+    await interaction.editReply("Solo el lider del gremio o un administrador puede modificar integrantes.");
+    return;
+  }
+  if (targetUser.bot) {
+    await interaction.editReply("No se pueden agregar bots a gremios.");
+    return;
+  }
+  const targetMember = await interaction.guild!.members.fetch(targetUser.id).catch(() => null);
+  if (!targetMember) {
+    await interaction.editReply("Usuario no encontrado en el servidor.");
+    return;
+  }
+  if (!managed.roleId) {
+    await interaction.editReply("El gremio no tiene rol configurado. Un administrador debe revisar la aprobacion.");
+    return;
+  }
+
+  try {
+    if (action === "agregar") {
+      const otherGuild = findActiveGuildForMember(data, interaction.guild!.id, targetUser.id);
+      if (otherGuild && otherGuild.id !== managed.id) {
+        await interaction.editReply(`Ese usuario ya pertenece al gremio "${otherGuild.name}".`);
+        return;
+      }
+      const updated = addGuildMember(managed, targetUser.id);
+      upsertGuildCommunity(data, updated);
+      if (!targetMember.roles.cache.has(managed.roleId)) {
+        await targetMember.roles.add(managed.roleId, `Agregado al gremio ${managed.name}`);
+      }
+      await writeGuildCommunitiesData(rootDir, data);
+      await interaction.editReply(`<@${targetUser.id}> agregado al gremio "${managed.name}".`);
+      return;
+    }
+
+    const updated = removeGuildMember(managed, targetUser.id);
+    upsertGuildCommunity(data, updated);
+    if (targetMember.roles.cache.has(managed.roleId)) {
+      await targetMember.roles.remove(managed.roleId, `Retirado del gremio ${managed.name}`);
+    }
+    await writeGuildCommunitiesData(rootDir, data);
+    await interaction.editReply(`<@${targetUser.id}> retirado del gremio "${managed.name}".`);
+  } catch (error) {
+    await interaction.editReply(error instanceof Error ? error.message : String(error));
+  }
 }
 
 async function handleStatusCommand(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -248,6 +452,25 @@ async function handleSuggestionVote(customId: string, userId: string, rootDir: s
     suggestionVoteCounts(record);
     await writeJsonAtomic(filePath, data);
   }
+}
+
+function optionalGuildRequestUsers(interaction: ChatInputCommandInteraction) {
+  return ["miembro1", "miembro2", "miembro3", "miembro4", "miembro5"]
+    .map((name) => interaction.options.getUser(name, false))
+    .filter((user): user is NonNullable<typeof user> => Boolean(user));
+}
+
+function canUseAdminRoles(member: GuildMember, authorizedRoleNames: string[]): boolean {
+  return memberHasAnyRole(member, authorizedRoleNames);
+}
+
+async function logGuildCommunityEvent(rootDir: string, interaction: ChatInputCommandInteraction, message: string, details?: unknown): Promise<void> {
+  const logger = new OperationLogger(path.join(rootDir, "logs"), botEnvSecrets());
+  await logger.log(message, { userId: interaction.user.id, ...objectDetails(details) }).catch(() => undefined);
+}
+
+function objectDetails(details: unknown): Record<string, unknown> {
+  return details && typeof details === "object" && !Array.isArray(details) ? details as Record<string, unknown> : { details };
 }
 
 async function requireRolesOrReply(interaction: ChatInputCommandInteraction, roleNames: string[]): Promise<boolean> {

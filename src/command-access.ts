@@ -12,7 +12,7 @@ export const commandAccessLevels: Record<string, CommandAccessLevel> = {
   estado: "public",
   sugerencia: "public",
   vincular: "public",
-  gremio: "moderator",
+  gremio: "public",
   evento: "moderator",
   cuarentena: "moderator",
   palworld: "administrator",

@@ -11,7 +11,18 @@ import { handleBotInteraction } from "../src/bot-interactions.js";
 import { loadDesiredStructure } from "../src/config.js";
 import { validateFutureEventDate, dueReminderMinutes } from "../src/events-logic.js";
 import { loadGuildsConfig } from "../src/guilds-config.js";
-import { calculateUniqueGuildAssignment, canUseGuildAdminCommand } from "../src/guilds-logic.js";
+import {
+  addGuildMember,
+  approveGuildRequest,
+  calculateUniqueGuildAssignment,
+  canManageGuildCommunity,
+  canUseGuildAdminCommand,
+  createGuildRequest,
+  guildRoleName,
+  guildTextChannelName,
+  guildVoiceChannelName,
+  removeGuildMember
+} from "../src/guilds-logic.js";
 import { runPalworldControl } from "../src/palworld-control.js";
 import { createLinkCode, hashLinkCode, isLinkExpired } from "../src/player-linking.js";
 import { DisabledRconClient, sanitizeRconError, TcpRconProbe } from "../src/rcon-client.js";
@@ -49,6 +60,44 @@ describe("guilds", () => {
   it("checks guild admin roles", () => {
     expect(canUseGuildAdminCommand(["Miembros", "Moderador"], ["Admin", "Moderador"])).toBe(true);
     expect(canUseGuildAdminCommand(["Miembros"], ["Admin", "Moderador"])).toBe(false);
+  });
+
+  it("creates and approves private guild requests with a leader", () => {
+    const data = { guilds: [] };
+    const request = createGuildRequest(data, {
+      discordGuildId: "discord",
+      ownerId: "leader",
+      name: "Los Exploradores",
+      memberIds: ["member", "leader"],
+      now: new Date("2026-08-08T00:00:00.000Z")
+    });
+
+    expect(request.id).toContain("los-exploradores");
+    expect(request.memberIds).toEqual(["leader", "member"]);
+    expect(request.status).toBe("pending");
+    expect(approveGuildRequest(request, "admin", new Date("2026-08-08T01:00:00.000Z"))).toMatchObject({
+      status: "active",
+      ownerId: "leader",
+      approvedBy: "admin"
+    });
+    expect(guildRoleName(request.name)).toBe("Gremio - Los Exploradores");
+    expect(guildTextChannelName(request.name)).toBe("gremio-los-exploradores");
+    expect(guildVoiceChannelName(request.name)).toBe("voz-los-exploradores");
+  });
+
+  it("lets only the leader or admins manage guild members", () => {
+    const active = approveGuildRequest(createGuildRequest({ guilds: [] }, {
+      discordGuildId: "discord",
+      ownerId: "leader",
+      name: "Constructores"
+    }), "admin");
+
+    expect(canManageGuildCommunity(active, "leader", ["Miembros"], ["Admin", "Moderador"])).toBe(true);
+    expect(canManageGuildCommunity(active, "other", ["Admin"], ["Admin", "Moderador"])).toBe(true);
+    expect(canManageGuildCommunity(active, "other", ["Miembros"], ["Admin", "Moderador"])).toBe(false);
+    expect(addGuildMember(active, "member").memberIds).toContain("member");
+    expect(removeGuildMember(addGuildMember(active, "member"), "member").memberIds).not.toContain("member");
+    expect(() => removeGuildMember(active, "leader")).toThrow(/lider/);
   });
 });
 
@@ -163,16 +212,21 @@ describe("commands and atomic writes", () => {
     expect(names).toContain("vincular");
     const breeding = slashCommandDefinitions().find((command) => command.name === "crianza");
     expect(breeding?.options?.[0]).toMatchObject({ name: "pal", autocomplete: true });
+    const guildOptions = slashCommandDefinitions().find((command) => command.name === "gremio")?.options?.map((option) => option.name) ?? [];
+    expect(guildOptions).toEqual(expect.arrayContaining(["solicitar", "solicitudes", "aprobar", "rechazar", "agregar", "eliminar"]));
   });
 
   it("classifies public and restricted slash commands with default permissions", () => {
     const commands = new Map(slashCommandDefinitions().map((command) => [command.name, command]));
 
     expect(commandAccessLevel("crianza")).toBe("public");
+    expect(commandAccessLevel("gremio")).toBe("public");
     expect(commandAccessLevel("crianza-panel")).toBe("administrator");
     expect(publicCommandNames()).toContain("crianza");
+    expect(publicCommandNames()).toContain("gremio");
     expect(restrictedCommandNames()).toContain("crianza-panel");
     expect(commands.get("crianza")?.default_member_permissions).toBeUndefined();
+    expect(commands.get("gremio")?.default_member_permissions).toBeUndefined();
     expect(commands.get("crianza-panel")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("informacion")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("palworld")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());

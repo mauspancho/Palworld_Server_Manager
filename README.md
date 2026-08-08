@@ -10,7 +10,7 @@ Herramienta multiplataforma para administrar Discord y automatizaciones comunita
 - Canales informativos: permisos de solo lectura para bienvenida, reglas, anuncios, datos del servidor y seleccion de roles, con reparacion administrativa y proteccion secundaria.
 - Crianza Palworld: panel persistente, `/crianza` con autocompletado y datos locales versionados en `config/breeding-combinations.json`.
 - Self-roles: menus persistentes en `ROLES_CHANNEL_ID`.
-- Gremios: roles y canales privados por gremio, mas comandos `/gremio`.
+- Gremios: solicitudes aprobadas por administradores, lider de gremio, integrantes gestionados por el lider, roles y canales privados por gremio.
 - Estado Palworld: panel persistente, `/estado` y alertas por cambio.
 - Tickets: panel persistente y base de datos en `data/tickets.json`.
 - Sugerencias: comandos y votos persistentes.

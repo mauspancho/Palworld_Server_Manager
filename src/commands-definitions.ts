@@ -15,6 +15,48 @@ export function slashCommandDefinitions(): RESTPostAPIChatInputApplicationComman
       options: [
         {
           type: ApplicationCommandOptionType.Subcommand,
+          name: "solicitar",
+          description: "Solicitar la creacion de un gremio privado",
+          options: [
+            { type: ApplicationCommandOptionType.String, name: "nombre", description: "Nombre del gremio", required: true },
+            { type: ApplicationCommandOptionType.User, name: "miembro1", description: "Integrante inicial opcional", required: false },
+            { type: ApplicationCommandOptionType.User, name: "miembro2", description: "Integrante inicial opcional", required: false },
+            { type: ApplicationCommandOptionType.User, name: "miembro3", description: "Integrante inicial opcional", required: false },
+            { type: ApplicationCommandOptionType.User, name: "miembro4", description: "Integrante inicial opcional", required: false },
+            { type: ApplicationCommandOptionType.User, name: "miembro5", description: "Integrante inicial opcional", required: false }
+          ]
+        },
+        {
+          type: ApplicationCommandOptionType.Subcommand,
+          name: "solicitudes",
+          description: "Listar solicitudes pendientes de gremio"
+        },
+        {
+          type: ApplicationCommandOptionType.Subcommand,
+          name: "aprobar",
+          description: "Aprobar una solicitud de gremio",
+          options: [{ type: ApplicationCommandOptionType.String, name: "solicitud", description: "ID de solicitud", required: true }]
+        },
+        {
+          type: ApplicationCommandOptionType.Subcommand,
+          name: "rechazar",
+          description: "Rechazar una solicitud de gremio",
+          options: [{ type: ApplicationCommandOptionType.String, name: "solicitud", description: "ID de solicitud", required: true }]
+        },
+        {
+          type: ApplicationCommandOptionType.Subcommand,
+          name: "agregar",
+          description: "Agregar un integrante al gremio que lideras",
+          options: [{ type: ApplicationCommandOptionType.User, name: "usuario", description: "Usuario", required: true }]
+        },
+        {
+          type: ApplicationCommandOptionType.Subcommand,
+          name: "eliminar",
+          description: "Eliminar un integrante del gremio que lideras",
+          options: [{ type: ApplicationCommandOptionType.User, name: "usuario", description: "Usuario", required: true }]
+        },
+        {
+          type: ApplicationCommandOptionType.Subcommand,
           name: "asignar",
           description: "Asignar un usuario a un gremio",
           options: [
