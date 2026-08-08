@@ -19,12 +19,15 @@ ReadMessageHistory
 ManageChannels
 ManageRoles
 ManageMessages
+MentionEveryone
 UseApplicationCommands
 CreatePublicThreads
 CreatePrivateThreads
 ```
 
 `ManageMessages` se usa para retirar mensajes no autorizados en canales informativos. Si falta, el bot debe seguir encendido y registrar una advertencia.
+
+`/mensaje` requiere `SendMessages`, `MentionEveryone` y `ManageMessages` en `GENERAL_CHAT_CHANNEL_ID` para publicar, alertar con `@everyone` y fijar el anuncio.
 
 No se debe depender de `Administrator`.
 
@@ -97,6 +100,8 @@ Comandos restringidos a administracion con `default_member_permissions=Administr
 - `/palworld`
 - `/informacion`
 - `/crianza-panel`
+- `/mensaje`
+- `/solicitudes-pendientes`
 
 `/palworld` contiene acciones como `iniciar`, `detener` y `reiniciar-ahora`, por lo que queda oculto para usuarios normales en el selector slash. El manejador global conserva una segunda validacion y responde de forma efimera si alguien intenta ejecutar una interaccion antigua o manipulada.
 

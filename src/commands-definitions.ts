@@ -88,6 +88,10 @@ export function slashCommandDefinitions(): RESTPostAPIChatInputApplicationComman
       name: "solicitudes-pendientes",
       description: "Republicar solicitudes pendientes de gremio para revision admin"
     },
+    {
+      name: "mensaje",
+      description: "Redactar un anuncio para publicar y fijar en el chat general"
+    },
     { name: "estado", description: "Mostrar estado actual del servidor Palworld" },
     {
       name: "sugerencia",

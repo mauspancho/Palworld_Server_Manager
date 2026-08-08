@@ -6,6 +6,7 @@ Herramienta multiplataforma para administrar Discord y automatizaciones comunita
 
 - CLI administrativa: `validate`, `list`, `backup`, `plan`, `apply`, `restore`.
 - Bot permanente: bienvenida, DM de bienvenida, registro de entradas y asignacion segura de `MEMBER_ROLE_ID`.
+- Mensajes administrativos: `/mensaje` redacta desde el canal de registro, publica en chat general con `@everyone` y fija el mensaje.
 - Aceptacion de reglas: panel persistente unico en el canal de reglas, botones `Aceptar reglas` y `Rechazar reglas`, respuestas efimeras por usuario, rol pendiente opcional y acceso al chat general solo tras aceptar.
 - Canales informativos: permisos de solo lectura para bienvenida, reglas, anuncios, datos del servidor y seleccion de roles, con reparacion administrativa y proteccion secundaria.
 - Crianza Palworld: panel persistente, `/crianza` con autocompletado y datos locales versionados en `config/breeding-combinations.json`.
@@ -106,12 +107,15 @@ ReadMessageHistory
 ManageChannels
 ManageRoles
 ManageMessages
+MentionEveryone
 UseApplicationCommands
 CreatePublicThreads
 CreatePrivateThreads
 ```
 
 `ManageMessages` permite borrar mensajes no autorizados en canales informativos. Si falta, el bot arrancara con advertencia y esa limpieza quedara deshabilitada hasta corregir permisos.
+
+`/mensaje` requiere `SendMessages`, `MentionEveryone` y `ManageMessages` en `GENERAL_CHAT_CHANNEL_ID` para publicar, alertar y fijar el anuncio.
 
 No dependas de `Administrator`. El rol del bot debe estar por encima de `MEMBER_ROLE_ID`, `PENDING_MEMBER_ROLE_ID`, roles de self-roles, roles de gremios y cuarentena.
 
@@ -315,6 +319,8 @@ npm run commands:delete
 La visibilidad en Discord no sustituye las validaciones internas de roles.
 
 Para recuperar solicitudes antiguas de gremio que quedaron pendientes sin tarjeta de revision, registra comandos y usa `/solicitudes-pendientes`. El bot publicara las tarjetas con botones en el canal privado de solicitudes.
+
+Para enviar un anuncio administrativo, usa `/mensaje` desde el canal configurado en `MEMBER_LOG_CHANNEL_ID`. Discord mostrara un modal con titulo y cuerpo; al enviarlo, el bot publicara el mensaje en `GENERAL_CHAT_CHANNEL_ID` con `@everyone` y lo fijara.
 
 ## Desactivar Modulos
 

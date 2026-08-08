@@ -39,6 +39,14 @@ import { mapSystemdStatus, parseSystemctlShow, shouldSendStatusAlert } from "../
 import { buildStatusEmbed } from "../src/status-panel.js";
 import { applySuggestionVote, suggestionVoteCounts, type SuggestionRecord } from "../src/suggestions-logic.js";
 import { closeTicketRecord, createTicketRecord, emptyTicketsData, findOpenTicketForUser, formatTicketChannelName, reopenTicketRecord } from "../src/tickets-logic.js";
+import {
+  adminMessageBodyInputId,
+  adminMessageModalId,
+  adminMessageTitleInputId,
+  buildAdminAnnouncementPayload,
+  buildAdminMessageModal,
+  validateAdminAnnouncementInput
+} from "../src/admin-message-components.js";
 
 describe("forum structure", () => {
   it("loads forum channels and configured tags", async () => {
@@ -181,6 +189,32 @@ describe("tickets", () => {
   });
 });
 
+describe("admin messages", () => {
+  it("builds the compose modal and announcement payload", () => {
+    const modal = buildAdminMessageModal().toJSON();
+    const payload = buildAdminAnnouncementPayload({
+      title: "Reinicio programado",
+      body: "El servidor se reiniciara en 10 minutos.",
+      authorTag: "Admin#0001"
+    });
+
+    expect(modal.custom_id).toBe(adminMessageModalId);
+    expect(JSON.stringify(modal)).toContain(adminMessageTitleInputId);
+    expect(JSON.stringify(modal)).toContain(adminMessageBodyInputId);
+    expect(payload.content).toBe("@everyone");
+    expect(payload.allowedMentions.parse).toEqual(["everyone"]);
+    expect(payload.embeds[0]!.toJSON()).toMatchObject({
+      title: "Reinicio programado",
+      description: "El servidor se reiniciara en 10 minutos."
+    });
+    expect(validateAdminAnnouncementInput("Titulo", "Cuerpo")).toEqual([]);
+    expect(validateAdminAnnouncementInput(" ", " ")).toEqual([
+      "El titulo no puede estar vacio.",
+      "El mensaje no puede estar vacio."
+    ]);
+  });
+});
+
 describe("suggestions", () => {
   it("counts votes and replaces previous vote", () => {
     const record: SuggestionRecord = { id: "s1", authorId: "author", title: "T", description: "D", status: "En votacion", votes: {} };
@@ -239,6 +273,7 @@ describe("commands and atomic writes", () => {
 
     expect(names).toContain("gremio");
     expect(names).toContain("solicitudes-pendientes");
+    expect(names).toContain("mensaje");
     expect(names).toContain("estado");
     expect(names).toContain("crianza");
     expect(names).toContain("crianza-panel");
@@ -255,14 +290,17 @@ describe("commands and atomic writes", () => {
     expect(commandAccessLevel("crianza")).toBe("public");
     expect(commandAccessLevel("gremio")).toBe("public");
     expect(commandAccessLevel("solicitudes-pendientes")).toBe("administrator");
+    expect(commandAccessLevel("mensaje")).toBe("administrator");
     expect(commandAccessLevel("crianza-panel")).toBe("administrator");
     expect(publicCommandNames()).toContain("crianza");
     expect(publicCommandNames()).toContain("gremio");
     expect(restrictedCommandNames()).toContain("crianza-panel");
     expect(restrictedCommandNames()).toContain("solicitudes-pendientes");
+    expect(restrictedCommandNames()).toContain("mensaje");
     expect(commands.get("crianza")?.default_member_permissions).toBeUndefined();
     expect(commands.get("gremio")?.default_member_permissions).toBeUndefined();
     expect(commands.get("solicitudes-pendientes")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
+    expect(commands.get("mensaje")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("crianza-panel")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("informacion")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("palworld")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());

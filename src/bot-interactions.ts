@@ -5,7 +5,8 @@ import {
   GuildMember,
   Interaction,
   MessageFlags,
-  ModalSubmitInteraction
+  ModalSubmitInteraction,
+  PermissionFlagsBits
 } from "discord.js";
 import path from "node:path";
 import type { BotEnv } from "./bot-config.js";
@@ -61,6 +62,14 @@ import { OperationLogger } from "./logger.js";
 import { handleBreedingInteraction } from "./breeding-interactions.js";
 import { publishBreedingPanel } from "./breeding-publisher.js";
 import { commandAccessLevel, roleNamesForAccess } from "./command-access.js";
+import {
+  adminMessageBodyInputId,
+  adminMessageTitleInputId,
+  buildAdminAnnouncementPayload,
+  buildAdminMessageModal,
+  isAdminMessageModal,
+  validateAdminAnnouncementInput
+} from "./admin-message-components.js";
 
 export async function handleBotInteraction(interaction: Interaction, env: BotEnv, rootDir: string): Promise<boolean> {
   if (!interaction.guild || interaction.guildId !== env.DISCORD_GUILD_ID) {
@@ -74,6 +83,10 @@ export async function handleBotInteraction(interaction: Interaction, env: BotEnv
   }
   if ((interaction.isButton() || isModalSubmitInteraction(interaction)) && isGuildRequestComponent(interaction.customId)) {
     await handleGuildRequestInteraction(interaction, env, rootDir);
+    return true;
+  }
+  if (isModalSubmitInteraction(interaction) && isAdminMessageModal(interaction.customId)) {
+    await handleAdminMessageModalSubmit(interaction, env, rootDir);
     return true;
   }
   if (interaction.isChatInputCommand()) {
@@ -97,6 +110,9 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
     return;
   }
   switch (interaction.commandName) {
+    case "mensaje":
+      await handleAdminMessageCommand(interaction, env);
+      return;
     case "solicitudes-pendientes":
       await handlePendingGuildRequestsCommand(interaction, env, rootDir);
       return;
@@ -135,6 +151,17 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
       }
       return;
   }
+}
+
+async function handleAdminMessageCommand(interaction: ChatInputCommandInteraction, env: BotEnv): Promise<void> {
+  if (interaction.channelId !== env.MEMBER_LOG_CHANNEL_ID) {
+    await interaction.reply({
+      content: `Usa este comando en el canal de registro de mensajes: <#${env.MEMBER_LOG_CHANNEL_ID}>.`,
+      flags: MessageFlags.Ephemeral
+    });
+    return;
+  }
+  await interaction.showModal(buildAdminMessageModal());
 }
 
 async function requireCommandAccessOrReply(interaction: ChatInputCommandInteraction): Promise<boolean> {
@@ -412,6 +439,74 @@ async function handlePendingGuildRequestsCommand(interaction: ChatInputCommandIn
     `Actualizadas: ${updated}`,
     `Errores: ${failed}`
   ].join("\n"));
+}
+
+async function handleAdminMessageModalSubmit(interaction: ModalSubmitInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  const actor = interaction.member instanceof GuildMember ? interaction.member : await interaction.guild!.members.fetch(interaction.user.id);
+  if (!memberHasAnyRole(actor, adminRoleNames())) {
+    await interaction.reply({ content: "No tienes permisos para enviar mensajes administrativos.", flags: MessageFlags.Ephemeral });
+    return;
+  }
+  if (interaction.channelId !== env.MEMBER_LOG_CHANNEL_ID) {
+    await interaction.reply({
+      content: `El mensaje debe redactarse desde <#${env.MEMBER_LOG_CHANNEL_ID}>.`,
+      flags: MessageFlags.Ephemeral
+    });
+    return;
+  }
+
+  const title = interaction.fields.getTextInputValue(adminMessageTitleInputId);
+  const body = interaction.fields.getTextInputValue(adminMessageBodyInputId);
+  const validationErrors = validateAdminAnnouncementInput(title, body);
+  if (validationErrors.length > 0) {
+    await interaction.reply({ content: validationErrors.join("\n"), flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const generalChannel = await interaction.guild!.channels.fetch(env.GENERAL_CHAT_CHANNEL_ID).catch(() => null);
+  if (!generalChannel || generalChannel.type !== ChannelType.GuildText) {
+    await interaction.editReply("GENERAL_CHAT_CHANNEL_ID no existe o no es un canal de texto.");
+    return;
+  }
+
+  const botUserId = interaction.client.user?.id;
+  if (!botUserId) {
+    await interaction.editReply("No se pudo identificar el bot.");
+    return;
+  }
+  const botMember = await interaction.guild!.members.fetch(botUserId);
+  const permissions = generalChannel.permissionsFor(botMember);
+  if (!permissions?.has(PermissionFlagsBits.SendMessages)) {
+    await interaction.editReply("El bot necesita SendMessages en el chat general.");
+    return;
+  }
+  if (!permissions.has(PermissionFlagsBits.MentionEveryone)) {
+    await interaction.editReply("El bot necesita MentionEveryone para alertar con @everyone.");
+    return;
+  }
+  if (!permissions.has(PermissionFlagsBits.ManageMessages)) {
+    await interaction.editReply("El bot necesita ManageMessages en el chat general para fijar el mensaje.");
+    return;
+  }
+
+  try {
+    const sentMessage = await generalChannel.send(buildAdminAnnouncementPayload({
+      title,
+      body,
+      authorTag: interaction.user.tag
+    }));
+    await sentMessage.pin("Mensaje administrativo enviado con /mensaje");
+    await logGuildCommunityEvent(rootDir, interaction, "Mensaje administrativo publicado y fijado.", {
+      channelId: generalChannel.id,
+      messageId: sentMessage.id,
+      authorId: interaction.user.id
+    });
+    await interaction.editReply(`Mensaje enviado y fijado en <#${generalChannel.id}>.`);
+  } catch (error) {
+    const message = error instanceof Error ? sanitizeSecret(error.message, botEnvSecrets(env)) : sanitizeSecret(String(error), botEnvSecrets(env));
+    await interaction.editReply(`No se pudo enviar o fijar el mensaje: ${message}`);
+  }
 }
 
 async function handleGuildApproveCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
