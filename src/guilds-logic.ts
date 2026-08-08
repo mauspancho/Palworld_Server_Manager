@@ -98,7 +98,7 @@ export function approveGuildRequest(record: GuildCommunityRecord, approverId: st
   };
 }
 
-export function rejectGuildRequest(record: GuildCommunityRecord, rejectedBy: string, now = new Date()): GuildCommunityRecord {
+export function rejectGuildRequest(record: GuildCommunityRecord, rejectedBy: string, reason?: string, now = new Date()): GuildCommunityRecord {
   if (record.status !== "pending") {
     throw new Error("Solo se pueden rechazar solicitudes pendientes.");
   }
@@ -108,7 +108,31 @@ export function rejectGuildRequest(record: GuildCommunityRecord, rejectedBy: str
     status: "rejected",
     rejectedAt: timestamp,
     rejectedBy,
+    rejectionReason: reason?.trim() || undefined,
     updatedAt: timestamp
+  };
+}
+
+export function cancelGuildRequest(record: GuildCommunityRecord, cancelledBy: string, now = new Date()): GuildCommunityRecord {
+  if (record.status !== "pending") {
+    throw new Error("Solo se pueden cancelar solicitudes pendientes.");
+  }
+  const timestamp = now.toISOString();
+  return {
+    ...record,
+    status: "cancelled",
+    cancelledAt: timestamp,
+    cancelledBy,
+    updatedAt: timestamp
+  };
+}
+
+export function attachGuildReviewMessage(record: GuildCommunityRecord, channelId: string, messageId: string, now = new Date()): GuildCommunityRecord {
+  return {
+    ...record,
+    reviewChannelId: channelId,
+    reviewMessageId: messageId,
+    updatedAt: now.toISOString()
   };
 }
 

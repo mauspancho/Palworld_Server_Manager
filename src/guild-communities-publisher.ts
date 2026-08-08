@@ -10,6 +10,7 @@ import {
   TextChannel,
   VoiceChannel
 } from "discord.js";
+import type { BotEnv } from "./bot-config.js";
 import { SafeError } from "./errors.js";
 import type { GuildsConfig } from "./guilds-config.js";
 import {
@@ -60,6 +61,30 @@ export function validateGuildCommunityPublisherPermissions(botMember: GuildMembe
   if (botMember.permissions.has(PermissionsBitField.Flags.Administrator)) {
     throw new SafeError("La gestion de gremios no debe depender de Administrator.");
   }
+}
+
+export async function fetchGuildRequestChannel(
+  guild: Guild,
+  botMember: GuildMember,
+  config: GuildsConfig,
+  env: Pick<BotEnv, "GUILD_REQUEST_CHANNEL_ID">
+): Promise<TextChannel> {
+  if (!env.GUILD_REQUEST_CHANNEL_ID) {
+    throw new SafeError("GUILD_REQUEST_CHANNEL_ID no esta configurado.");
+  }
+  const channel = await guild.channels.fetch(env.GUILD_REQUEST_CHANNEL_ID).catch(() => null);
+  if (!channel || channel.type !== ChannelType.GuildText) {
+    throw new SafeError("GUILD_REQUEST_CHANNEL_ID debe corresponder a un canal de texto existente.");
+  }
+  if (channel.guild.id !== guild.id) {
+    throw new SafeError("GUILD_REQUEST_CHANNEL_ID no pertenece al servidor configurado.");
+  }
+  if (!botMember.permissions.has(PermissionFlagsBits.ManageChannels)) {
+    throw new SafeError("El bot necesita ManageChannels para asegurar la privacidad del canal de solicitudes de gremio.");
+  }
+  const overwrites = await guildRequestChannelOverwrites(guild, config, botMember);
+  await channel.permissionOverwrites.set(overwrites, "Asegurar canal privado de solicitudes de gremio");
+  return channel;
 }
 
 async function ensureGuildRole(
@@ -151,6 +176,37 @@ async function guildCommunityOverwrites(guild: Guild, config: GuildsConfig, guil
           PermissionFlagsBits.ManageMessages,
           PermissionFlagsBits.Connect,
           PermissionFlagsBits.Speak
+        ]
+      });
+    }
+  }
+  return overwrites;
+}
+
+async function guildRequestChannelOverwrites(guild: Guild, config: GuildsConfig, botMember: GuildMember): Promise<OverwriteResolvable[]> {
+  const roles = await guild.roles.fetch();
+  const overwrites: OverwriteResolvable[] = [
+    { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+    {
+      id: botMember.id,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.ReadMessageHistory,
+        PermissionFlagsBits.ManageMessages
+      ]
+    }
+  ];
+  for (const roleName of config.authorizedRoleNames) {
+    const role = roles.find((candidate) => candidate.name === roleName);
+    if (role) {
+      overwrites.push({
+        id: role.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ReadMessageHistory,
+          PermissionFlagsBits.ManageMessages
         ]
       });
     }

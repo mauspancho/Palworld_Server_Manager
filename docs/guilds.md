@@ -12,6 +12,18 @@ Los miembros pueden solicitar un gremio con:
 
 La solicitud queda pendiente en `data/guild-communities.json`. No crea canales ni roles hasta que un administrador o moderador la apruebe.
 
+Tambien se publica en el canal configurado con:
+
+```txt
+GUILD_REQUEST_CHANNEL_ID=<canal administrativo>
+```
+
+Ese canal se repara como privado para `@everyone` y visible solo para los roles administrativos configurados en `authorizedRoleNames`. El mensaje de revision incluye botones:
+
+- `Aceptar`: aprueba la solicitud, crea rol/canales privados y notifica al solicitante.
+- `Rechazar`: abre un formulario para escribir el motivo y lo envia al solicitante.
+- `Cancelar`: cancela la solicitud y notifica al solicitante.
+
 Administracion:
 
 ```txt

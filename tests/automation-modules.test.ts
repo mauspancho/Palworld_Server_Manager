@@ -15,14 +15,23 @@ import {
   addGuildMember,
   approveGuildRequest,
   calculateUniqueGuildAssignment,
+  cancelGuildRequest,
   canManageGuildCommunity,
   canUseGuildAdminCommand,
   createGuildRequest,
   guildRoleName,
+  rejectGuildRequest,
   guildTextChannelName,
   guildVoiceChannelName,
   removeGuildMember
 } from "../src/guilds-logic.js";
+import {
+  buildGuildRejectModal,
+  buildGuildRequestReviewPayload,
+  guildRequestApprovePrefix,
+  guildRequestCancelPrefix,
+  guildRequestRejectPrefix
+} from "../src/guilds-components.js";
 import { runPalworldControl } from "../src/palworld-control.js";
 import { createLinkCode, hashLinkCode, isLinkExpired } from "../src/player-linking.js";
 import { DisabledRconClient, sanitizeRconError, TcpRconProbe } from "../src/rcon-client.js";
@@ -98,6 +107,28 @@ describe("guilds", () => {
     expect(addGuildMember(active, "member").memberIds).toContain("member");
     expect(removeGuildMember(addGuildMember(active, "member"), "member").memberIds).not.toContain("member");
     expect(() => removeGuildMember(active, "leader")).toThrow(/lider/);
+  });
+
+  it("builds admin review controls and keeps rejection reasons", () => {
+    const request = createGuildRequest({ guilds: [] }, {
+      discordGuildId: "discord",
+      ownerId: "leader",
+      name: "Raiders"
+    });
+    const payload = buildGuildRequestReviewPayload(request);
+    const buttonIds = payload.components[0]!.toJSON().components.map((component) => component.custom_id);
+    const rejected = rejectGuildRequest(request, "admin", "Nombre no permitido", new Date("2026-08-08T02:00:00.000Z"));
+    const cancelled = cancelGuildRequest(request, "admin", new Date("2026-08-08T03:00:00.000Z"));
+
+    expect(buttonIds).toEqual([
+      `${guildRequestApprovePrefix}${request.id}`,
+      `${guildRequestRejectPrefix}${request.id}`,
+      `${guildRequestCancelPrefix}${request.id}`
+    ]);
+    expect(buildGuildRejectModal(request).toJSON().custom_id).toContain(request.id);
+    expect(rejected).toMatchObject({ status: "rejected", rejectionReason: "Nombre no permitido" });
+    expect(cancelled).toMatchObject({ status: "cancelled", cancelledBy: "admin" });
+    expect(buildGuildRequestReviewPayload(rejected).components).toEqual([]);
   });
 });
 

@@ -1,9 +1,11 @@
 import {
+  ButtonInteraction,
   ChannelType,
   ChatInputCommandInteraction,
   GuildMember,
   Interaction,
-  MessageFlags
+  MessageFlags,
+  ModalSubmitInteraction
 } from "discord.js";
 import path from "node:path";
 import type { BotEnv } from "./bot-config.js";
@@ -16,14 +18,16 @@ import { loadGuildsConfig } from "./guilds-config.js";
 import {
   addGuildMember,
   approveGuildRequest,
+  attachGuildReviewMessage,
   calculateUniqueGuildAssignment,
+  cancelGuildRequest,
   canManageGuildCommunity,
   createGuildRequest,
   rejectGuildRequest,
   removeGuildMember
 } from "./guilds-logic.js";
 import { findGuildSlot, guildRoleNames } from "./guilds-publisher.js";
-import { ensureGuildCommunityResources } from "./guild-communities-publisher.js";
+import { ensureGuildCommunityResources, fetchGuildRequestChannel } from "./guild-communities-publisher.js";
 import {
   findActiveGuildForMember,
   findGuildCommunityById,
@@ -34,6 +38,17 @@ import {
   writeGuildCommunitiesData
 } from "./guilds-state.js";
 import type { GuildCommunityRecord } from "./guilds-types.js";
+import {
+  buildGuildRejectModal,
+  buildGuildRequestReviewPayload,
+  guildRequestApprovePrefix,
+  guildRequestCancelPrefix,
+  guildRequestIdFromCustomId,
+  guildRequestRejectModalPrefix,
+  guildRequestRejectPrefix,
+  guildRequestRejectReasonInputId,
+  isGuildRequestComponent
+} from "./guilds-components.js";
 import { buildStatusEmbed } from "./status-panel.js";
 import { SystemStatusProbe } from "./status-probe.js";
 import { loadStatusConfig } from "./status-config.js";
@@ -55,6 +70,10 @@ export async function handleBotInteraction(interaction: Interaction, env: BotEnv
     return true;
   }
   if (await handleBreedingInteraction(interaction, env, rootDir)) {
+    return true;
+  }
+  if ((interaction.isButton() || isModalSubmitInteraction(interaction)) && isGuildRequestComponent(interaction.customId)) {
+    await handleGuildRequestInteraction(interaction, env, rootDir);
     return true;
   }
   if (interaction.isChatInputCommand()) {
@@ -79,7 +98,7 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
   }
   switch (interaction.commandName) {
     case "gremio":
-      await handleGuildCommand(interaction, rootDir);
+      await handleGuildCommand(interaction, env, rootDir);
       return;
     case "estado":
       await handleStatusCommand(interaction);
@@ -184,7 +203,7 @@ async function handleInformationCommand(interaction: ChatInputCommandInteraction
   }
 }
 
-async function handleGuildCommand(interaction: ChatInputCommandInteraction, rootDir: string): Promise<void> {
+async function handleGuildCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
   const config = await loadGuildsConfig(rootDir);
   if (!config.enabled) {
     await interaction.reply({ content: "El modulo de gremios esta desactivado.", flags: MessageFlags.Ephemeral });
@@ -192,7 +211,7 @@ async function handleGuildCommand(interaction: ChatInputCommandInteraction, root
   }
   const sub = interaction.options.getSubcommand();
   if (sub === "solicitar") {
-    await handleGuildRequestCommand(interaction, rootDir);
+    await handleGuildRequestCommand(interaction, env, rootDir);
     return;
   }
   if (sub === "solicitudes") {
@@ -206,14 +225,14 @@ async function handleGuildCommand(interaction: ChatInputCommandInteraction, root
     if (!(await requireRolesOrReply(interaction, config.authorizedRoleNames))) {
       return;
     }
-    await handleGuildApproveCommand(interaction, rootDir);
+    await handleGuildApproveCommand(interaction, env, rootDir);
     return;
   }
   if (sub === "rechazar") {
     if (!(await requireRolesOrReply(interaction, config.authorizedRoleNames))) {
       return;
     }
-    await handleGuildRejectCommand(interaction, rootDir);
+    await handleGuildRejectCommand(interaction, env, rootDir);
     return;
   }
   if (sub === "agregar" || sub === "eliminar") {
@@ -260,8 +279,9 @@ async function handleGuildCommand(interaction: ChatInputCommandInteraction, root
   await interaction.reply({ content: sub === "quitar" ? `Gremio retirado a ${user}.` : `Gremio asignado a ${user}.`, flags: MessageFlags.Ephemeral });
 }
 
-async function handleGuildRequestCommand(interaction: ChatInputCommandInteraction, rootDir: string): Promise<void> {
+async function handleGuildRequestCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const config = await loadGuildsConfig(rootDir);
   const data = await readGuildCommunitiesData(rootDir);
   const existing = findActiveGuildForMember(data, interaction.guild!.id, interaction.user.id);
   if (existing) {
@@ -283,13 +303,29 @@ async function handleGuildRequestCommand(interaction: ChatInputCommandInteractio
     await interaction.editReply(error instanceof Error ? error.message : String(error));
     return;
   }
+
+  const botUserId = interaction.client.user?.id;
+  if (!botUserId) {
+    await interaction.editReply("No se pudo identificar el bot.");
+    return;
+  }
+  const botMember = await interaction.guild!.members.fetch(botUserId);
+  const requestChannel = await fetchGuildRequestChannel(interaction.guild!, botMember, config, env).catch(async (error) => {
+    await interaction.editReply(error instanceof Error ? error.message : String(error));
+    return null;
+  });
+  if (!requestChannel) {
+    return;
+  }
+  const reviewMessage = await requestChannel.send(buildGuildRequestReviewPayload(request));
+  request = attachGuildReviewMessage(request, requestChannel.id, reviewMessage.id);
   upsertGuildCommunity(data, request);
   await writeGuildCommunitiesData(rootDir, data);
   await logGuildCommunityEvent(rootDir, interaction, "Solicitud de gremio creada.", { requestId: request.id, name: request.name, ownerId: request.ownerId, memberIds: request.memberIds });
   await interaction.editReply([
     `Solicitud enviada para crear el gremio "${request.name}".`,
     `ID de solicitud: ${request.id}`,
-    "Un administrador debe aprobarla antes de crear los canales privados.",
+    `Un administrador debe aprobarla en <#${requestChannel.id}> antes de crear los canales privados.`,
     "",
     "Cuando sea aprobada, tu seras el lider y podras agregar o eliminar integrantes con `/gremio agregar` y `/gremio eliminar`."
   ].join("\n"));
@@ -306,20 +342,80 @@ async function handleGuildRequestsListCommand(interaction: ChatInputCommandInter
   });
 }
 
-async function handleGuildApproveCommand(interaction: ChatInputCommandInteraction, rootDir: string): Promise<void> {
+async function handleGuildApproveCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  const config = await loadGuildsConfig(rootDir);
+  const requestId = interaction.options.getString("solicitud", true);
+  const result = await approveGuildCommunityRequest(interaction, env, rootDir, requestId);
+  await interaction.editReply(result);
+}
+
+async function handleGuildRejectCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
   const data = await readGuildCommunitiesData(rootDir);
   const requestId = interaction.options.getString("solicitud", true);
   const request = findGuildCommunityById(data, requestId);
   if (!request || request.discordGuildId !== interaction.guild!.id || request.status !== "pending") {
-    await interaction.editReply("Solicitud pendiente no encontrada.");
+    await interaction.reply({ content: "Solicitud pendiente no encontrada.", flags: MessageFlags.Ephemeral });
     return;
+  }
+  await interaction.showModal(buildGuildRejectModal(request));
+}
+
+async function handleGuildRequestInteraction(interaction: ButtonInteraction | ModalSubmitInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  if (!interaction.guild || interaction.guildId !== env.DISCORD_GUILD_ID) {
+    return;
+  }
+  const config = await loadGuildsConfig(rootDir);
+  const actor = interaction.member instanceof GuildMember ? interaction.member : await interaction.guild.members.fetch(interaction.user.id);
+  if (!memberHasAnyRole(actor, config.authorizedRoleNames)) {
+    await interaction.reply({ content: "No tienes permisos para revisar solicitudes de gremio.", flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  if (interaction.isButton() && interaction.customId.startsWith(guildRequestApprovePrefix)) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const requestId = guildRequestIdFromCustomId(interaction.customId, guildRequestApprovePrefix);
+    await interaction.editReply(await approveGuildCommunityRequest(interaction, env, rootDir, requestId));
+    return;
+  }
+  if (interaction.isButton() && interaction.customId.startsWith(guildRequestRejectPrefix)) {
+    const requestId = guildRequestIdFromCustomId(interaction.customId, guildRequestRejectPrefix);
+    const request = findGuildCommunityById(await readGuildCommunitiesData(rootDir), requestId);
+    if (!request || request.discordGuildId !== interaction.guild.id || request.status !== "pending") {
+      await interaction.reply({ content: "Solicitud pendiente no encontrada.", flags: MessageFlags.Ephemeral });
+      return;
+    }
+    await interaction.showModal(buildGuildRejectModal(request));
+    return;
+  }
+  if (interaction.isButton() && interaction.customId.startsWith(guildRequestCancelPrefix)) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const requestId = guildRequestIdFromCustomId(interaction.customId, guildRequestCancelPrefix);
+    await interaction.editReply(await cancelGuildCommunityRequest(interaction, env, rootDir, requestId));
+    return;
+  }
+  if (interaction.isModalSubmit() && interaction.customId.startsWith(guildRequestRejectModalPrefix)) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const requestId = guildRequestIdFromCustomId(interaction.customId, guildRequestRejectModalPrefix);
+    const reason = interaction.fields.getTextInputValue(guildRequestRejectReasonInputId);
+    await interaction.editReply(await rejectGuildCommunityRequest(interaction, env, rootDir, requestId, reason));
+  }
+}
+
+async function approveGuildCommunityRequest(
+  interaction: ChatInputCommandInteraction | ButtonInteraction,
+  env: BotEnv,
+  rootDir: string,
+  requestId: string
+): Promise<string> {
+  const config = await loadGuildsConfig(rootDir);
+  const data = await readGuildCommunitiesData(rootDir);
+  const request = findGuildCommunityById(data, requestId);
+  if (!request || request.discordGuildId !== interaction.guild!.id || request.status !== "pending") {
+    return "Solicitud pendiente no encontrada.";
   }
   const botUserId = interaction.client.user?.id;
   if (!botUserId) {
-    await interaction.editReply("No se pudo identificar el bot.");
-    return;
+    return "No se pudo identificar el bot.";
   }
   const botMember = await interaction.guild!.members.fetch(botUserId);
   const ensured = await ensureGuildCommunityResources(interaction.guild!, botMember, config, request);
@@ -332,28 +428,65 @@ async function handleGuildApproveCommand(interaction: ChatInputCommandInteractio
   }
   upsertGuildCommunity(data, approved);
   await writeGuildCommunitiesData(rootDir, data);
+  await updateGuildReviewMessage(interaction, approved);
+  await notifyGuildRequester(interaction, env, approved, [
+    `Tu solicitud para crear el gremio "${approved.name}" fue aprobada.`,
+    "Quedaste como lider del gremio.",
+    approved.textChannelId ? `Canal de texto: <#${approved.textChannelId}>` : "",
+    approved.voiceChannelId ? `Canal de voz: <#${approved.voiceChannelId}>` : ""
+  ].filter(Boolean).join("\n"));
   await logGuildCommunityEvent(rootDir, interaction, "Solicitud de gremio aprobada.", { requestId, name: approved.name, roleId: approved.roleId, textChannelId: approved.textChannelId, voiceChannelId: approved.voiceChannelId });
-  await interaction.editReply([
+  return [
     `Gremio "${approved.name}" aprobado.`,
     `Lider: <@${approved.ownerId}>`,
     approved.textChannelId ? `Canal de texto: <#${approved.textChannelId}>` : "Canal de texto: no disponible",
     approved.voiceChannelId ? `Canal de voz: <#${approved.voiceChannelId}>` : "Canal de voz: no disponible"
-  ].join("\n"));
+  ].join("\n");
 }
 
-async function handleGuildRejectCommand(interaction: ChatInputCommandInteraction, rootDir: string): Promise<void> {
+async function rejectGuildCommunityRequest(
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
+  env: BotEnv,
+  rootDir: string,
+  requestId: string,
+  reason: string
+): Promise<string> {
   const data = await readGuildCommunitiesData(rootDir);
-  const requestId = interaction.options.getString("solicitud", true);
   const request = findGuildCommunityById(data, requestId);
   if (!request || request.discordGuildId !== interaction.guild!.id || request.status !== "pending") {
-    await interaction.reply({ content: "Solicitud pendiente no encontrada.", flags: MessageFlags.Ephemeral });
-    return;
+    return "Solicitud pendiente no encontrada.";
   }
-  const rejected = rejectGuildRequest(request, interaction.user.id);
+  const rejected = rejectGuildRequest(request, interaction.user.id, reason);
   upsertGuildCommunity(data, rejected);
   await writeGuildCommunitiesData(rootDir, data);
-  await logGuildCommunityEvent(rootDir, interaction, "Solicitud de gremio rechazada.", { requestId, name: rejected.name, ownerId: rejected.ownerId });
-  await interaction.reply({ content: `Solicitud "${rejected.name}" rechazada.`, flags: MessageFlags.Ephemeral });
+  await updateGuildReviewMessage(interaction, rejected);
+  await notifyGuildRequester(interaction, env, rejected, [
+    `Tu solicitud para crear el gremio "${rejected.name}" fue rechazada.`,
+    "",
+    `Motivo: ${rejected.rejectionReason ?? "No especificado."}`
+  ].join("\n"));
+  await logGuildCommunityEvent(rootDir, interaction, "Solicitud de gremio rechazada.", { requestId, name: rejected.name, ownerId: rejected.ownerId, reason: rejected.rejectionReason });
+  return `Solicitud "${rejected.name}" rechazada y se envio el motivo al solicitante.`;
+}
+
+async function cancelGuildCommunityRequest(
+  interaction: ButtonInteraction,
+  env: BotEnv,
+  rootDir: string,
+  requestId: string
+): Promise<string> {
+  const data = await readGuildCommunitiesData(rootDir);
+  const request = findGuildCommunityById(data, requestId);
+  if (!request || request.discordGuildId !== interaction.guild!.id || request.status !== "pending") {
+    return "Solicitud pendiente no encontrada.";
+  }
+  const cancelled = cancelGuildRequest(request, interaction.user.id);
+  upsertGuildCommunity(data, cancelled);
+  await writeGuildCommunitiesData(rootDir, data);
+  await updateGuildReviewMessage(interaction, cancelled);
+  await notifyGuildRequester(interaction, env, cancelled, `Tu solicitud para crear el gremio "${cancelled.name}" fue cancelada por administracion.`);
+  await logGuildCommunityEvent(rootDir, interaction, "Solicitud de gremio cancelada.", { requestId, name: cancelled.name, ownerId: cancelled.ownerId });
+  return `Solicitud "${cancelled.name}" cancelada.`;
 }
 
 async function handleGuildMembershipCommand(interaction: ChatInputCommandInteraction, rootDir: string, action: "agregar" | "eliminar"): Promise<void> {
@@ -454,6 +587,31 @@ async function handleSuggestionVote(customId: string, userId: string, rootDir: s
   }
 }
 
+async function updateGuildReviewMessage(
+  interaction: ChatInputCommandInteraction | ButtonInteraction | ModalSubmitInteraction,
+  record: GuildCommunityRecord
+): Promise<void> {
+  if (!record.reviewChannelId || !record.reviewMessageId) {
+    return;
+  }
+  const channel = await interaction.guild?.channels.fetch(record.reviewChannelId).catch(() => null);
+  if (!channel || channel.type !== ChannelType.GuildText) {
+    return;
+  }
+  const message = await channel.messages.fetch(record.reviewMessageId).catch(() => null);
+  await message?.edit(buildGuildRequestReviewPayload(record)).catch(() => undefined);
+}
+
+async function notifyGuildRequester(
+  interaction: ChatInputCommandInteraction | ButtonInteraction | ModalSubmitInteraction,
+  env: BotEnv,
+  record: GuildCommunityRecord,
+  content: string
+): Promise<void> {
+  const member = await interaction.guild?.members.fetch(record.ownerId).catch(() => null);
+  await member?.send({ content: sanitizeSecret(content, botEnvSecrets(env)) }).catch(() => undefined);
+}
+
 function optionalGuildRequestUsers(interaction: ChatInputCommandInteraction) {
   return ["miembro1", "miembro2", "miembro3", "miembro4", "miembro5"]
     .map((name) => interaction.options.getUser(name, false))
@@ -464,13 +622,22 @@ function canUseAdminRoles(member: GuildMember, authorizedRoleNames: string[]): b
   return memberHasAnyRole(member, authorizedRoleNames);
 }
 
-async function logGuildCommunityEvent(rootDir: string, interaction: ChatInputCommandInteraction, message: string, details?: unknown): Promise<void> {
+async function logGuildCommunityEvent(
+  rootDir: string,
+  interaction: ChatInputCommandInteraction | ButtonInteraction | ModalSubmitInteraction,
+  message: string,
+  details?: unknown
+): Promise<void> {
   const logger = new OperationLogger(path.join(rootDir, "logs"), botEnvSecrets());
   await logger.log(message, { userId: interaction.user.id, ...objectDetails(details) }).catch(() => undefined);
 }
 
 function objectDetails(details: unknown): Record<string, unknown> {
   return details && typeof details === "object" && !Array.isArray(details) ? details as Record<string, unknown> : { details };
+}
+
+function isModalSubmitInteraction(interaction: Interaction): interaction is ModalSubmitInteraction {
+  return "isModalSubmit" in interaction && interaction.isModalSubmit();
 }
 
 async function requireRolesOrReply(interaction: ChatInputCommandInteraction, roleNames: string[]): Promise<boolean> {
