@@ -314,6 +314,8 @@ npm run commands:delete
 
 La visibilidad en Discord no sustituye las validaciones internas de roles.
 
+Para recuperar solicitudes antiguas de gremio que quedaron pendientes sin tarjeta de revision, registra comandos y usa `/solicitudes-pendientes`. El bot publicara las tarjetas con botones en el canal privado de solicitudes.
+
 ## Desactivar Modulos
 
 Usa estas variables:

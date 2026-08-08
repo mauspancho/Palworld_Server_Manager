@@ -238,6 +238,7 @@ describe("commands and atomic writes", () => {
     const names = slashCommandDefinitions().map((command) => command.name);
 
     expect(names).toContain("gremio");
+    expect(names).toContain("solicitudes-pendientes");
     expect(names).toContain("estado");
     expect(names).toContain("crianza");
     expect(names).toContain("crianza-panel");
@@ -253,12 +254,15 @@ describe("commands and atomic writes", () => {
 
     expect(commandAccessLevel("crianza")).toBe("public");
     expect(commandAccessLevel("gremio")).toBe("public");
+    expect(commandAccessLevel("solicitudes-pendientes")).toBe("administrator");
     expect(commandAccessLevel("crianza-panel")).toBe("administrator");
     expect(publicCommandNames()).toContain("crianza");
     expect(publicCommandNames()).toContain("gremio");
     expect(restrictedCommandNames()).toContain("crianza-panel");
+    expect(restrictedCommandNames()).toContain("solicitudes-pendientes");
     expect(commands.get("crianza")?.default_member_permissions).toBeUndefined();
     expect(commands.get("gremio")?.default_member_permissions).toBeUndefined();
+    expect(commands.get("solicitudes-pendientes")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("crianza-panel")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("informacion")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("palworld")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());

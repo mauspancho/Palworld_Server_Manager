@@ -33,10 +33,13 @@ Si el ID no esta configurado o el canal fue eliminado, el bot busca o crea `requ
 Administracion:
 
 ```txt
+/solicitudes-pendientes
 /gremio solicitudes
 /gremio aprobar solicitud:<id>
 /gremio rechazar solicitud:<id>
 ```
+
+`/solicitudes-pendientes` es solo para Admin. Revisa todas las solicitudes pendientes guardadas en `data/guild-communities.json` y publica o actualiza sus tarjetas con botones en el canal privado de solicitudes. Sirve para recuperar solicitudes creadas antes de que existiera el mensaje de revision persistente.
 
 Al aprobar:
 

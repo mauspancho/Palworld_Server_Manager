@@ -97,6 +97,9 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
     return;
   }
   switch (interaction.commandName) {
+    case "solicitudes-pendientes":
+      await handlePendingGuildRequestsCommand(interaction, env, rootDir);
+      return;
     case "gremio":
       await handleGuildCommand(interaction, env, rootDir);
       return;
@@ -340,6 +343,75 @@ async function handleGuildRequestsListCommand(interaction: ChatInputCommandInter
       : pending.map((request) => `${request.id} | ${request.name} | lider: <@${request.ownerId}> | integrantes iniciales: ${request.memberIds.map((id) => `<@${id}>`).join(", ")}`).join("\n"),
     flags: MessageFlags.Ephemeral
   });
+}
+
+async function handlePendingGuildRequestsCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const config = await loadGuildsConfig(rootDir);
+  if (!config.enabled) {
+    await interaction.editReply("El modulo de gremios esta desactivado.");
+    return;
+  }
+  const botUserId = interaction.client.user?.id;
+  if (!botUserId) {
+    await interaction.editReply("No se pudo identificar el bot.");
+    return;
+  }
+  const botMember = await interaction.guild!.members.fetch(botUserId);
+  const requestChannel = await fetchGuildRequestChannel(interaction.guild!, botMember, config, env).catch(async (error) => {
+    await interaction.editReply(error instanceof Error ? sanitizeSecret(error.message, botEnvSecrets(env)) : sanitizeSecret(String(error), botEnvSecrets(env)));
+    return null;
+  });
+  if (!requestChannel) {
+    return;
+  }
+
+  const data = await readGuildCommunitiesData(rootDir);
+  const pending = pendingGuildRequests(data, interaction.guild!.id);
+  if (pending.length === 0) {
+    await interaction.editReply(`No hay solicitudes pendientes de gremio. Canal revisado: <#${requestChannel.id}>.`);
+    return;
+  }
+
+  let created = 0;
+  let updated = 0;
+  let failed = 0;
+  for (const request of pending) {
+    try {
+      const existingMessage = request.reviewChannelId === requestChannel.id && request.reviewMessageId
+        ? await requestChannel.messages.fetch(request.reviewMessageId).catch(() => null)
+        : null;
+      if (existingMessage) {
+        await existingMessage.edit(buildGuildRequestReviewPayload(request));
+        updated += 1;
+        continue;
+      }
+      const reviewMessage = await requestChannel.send(buildGuildRequestReviewPayload(request));
+      upsertGuildCommunity(data, attachGuildReviewMessage(request, requestChannel.id, reviewMessage.id));
+      created += 1;
+    } catch (error) {
+      failed += 1;
+      await logGuildCommunityEvent(rootDir, interaction, "No se pudo republicar solicitud pendiente de gremio.", {
+        requestId: request.id,
+        error: error instanceof Error ? sanitizeSecret(error.message, botEnvSecrets(env)) : sanitizeSecret(String(error), botEnvSecrets(env))
+      });
+    }
+  }
+  await writeGuildCommunitiesData(rootDir, data);
+  await logGuildCommunityEvent(rootDir, interaction, "Solicitudes pendientes de gremio republicadas.", {
+    channelId: requestChannel.id,
+    total: pending.length,
+    created,
+    updated,
+    failed
+  });
+  await interaction.editReply([
+    `Solicitudes pendientes revisadas en <#${requestChannel.id}>.`,
+    `Total: ${pending.length}`,
+    `Publicadas: ${created}`,
+    `Actualizadas: ${updated}`,
+    `Errores: ${failed}`
+  ].join("\n"));
 }
 
 async function handleGuildApproveCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {

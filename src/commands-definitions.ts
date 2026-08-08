@@ -84,6 +84,10 @@ export function slashCommandDefinitions(): RESTPostAPIChatInputApplicationComman
         }
       ]
     },
+    {
+      name: "solicitudes-pendientes",
+      description: "Republicar solicitudes pendientes de gremio para revision admin"
+    },
     { name: "estado", description: "Mostrar estado actual del servidor Palworld" },
     {
       name: "sugerencia",
