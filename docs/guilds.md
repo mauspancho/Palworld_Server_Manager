@@ -12,13 +12,19 @@ Los miembros pueden solicitar un gremio con:
 
 La solicitud queda pendiente en `data/guild-communities.json`. No crea canales ni roles hasta que un administrador o moderador la apruebe.
 
-Tambien se publica en el canal configurado con:
+Tambien se publica en el canal administrativo de solicitudes. El bot lo crea automaticamente si no existe, usando el nombre configurado en `config/guilds.yml`:
+
+```txt
+requestChannelName: "solicitudes-gremios"
+```
+
+Opcionalmente puedes fijar un canal existente con:
 
 ```txt
 GUILD_REQUEST_CHANNEL_ID=<canal administrativo>
 ```
 
-Ese canal se repara como privado para `@everyone` y visible solo para los roles administrativos configurados en `authorizedRoleNames`. El mensaje de revision incluye botones:
+Si el ID no esta configurado o el canal fue eliminado, el bot busca o crea `requestChannelName` dentro de la categoria de gremios. Ese canal se repara como privado para `@everyone` y visible solo para los roles administrativos configurados en `authorizedRoleNames`. El mensaje de revision incluye botones:
 
 - `Aceptar`: aprueba la solicitud, crea rol/canales privados y notifica al solicitante.
 - `Rechazar`: abre un formulario para escribir el motivo y lo envia al solicitante.

@@ -13,6 +13,7 @@ export interface GuildSlotConfig {
 export interface GuildsConfig {
   enabled: boolean;
   categoryName: string;
+  requestChannelName: string;
   privateChannels: boolean;
   authorizedRoleNames: string[];
   managerRoleNames: string[];
@@ -26,6 +27,7 @@ export function guildsConfigPath(rootDir: string): string {
 export async function loadGuildsConfig(rootDir: string): Promise<GuildsConfig> {
   const raw = await fs.readFile(guildsConfigPath(rootDir), "utf8");
   const config = YAML.parse(raw) as GuildsConfig;
+  config.requestChannelName ||= "solicitudes-gremios";
   validateGuildsConfig(config);
   return config;
 }
@@ -33,6 +35,9 @@ export async function loadGuildsConfig(rootDir: string): Promise<GuildsConfig> {
 export function validateGuildsConfig(config: GuildsConfig): void {
   if (!config || !Array.isArray(config.guilds) || config.guilds.length === 0) {
     throw new SafeError("config/guilds.yml debe contener gremios.");
+  }
+  if (!config.requestChannelName) {
+    throw new SafeError("config/guilds.yml debe contener requestChannelName.");
   }
   const ids = new Set<string>();
   const roleNames = new Set<string>();

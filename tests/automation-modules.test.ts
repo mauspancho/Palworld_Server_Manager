@@ -58,6 +58,7 @@ describe("guilds", () => {
 
     expect(config.guilds).toHaveLength(5);
     expect(config.guilds.map((guild) => guild.roleName)).toContain("Gremio 1");
+    expect(config.requestChannelName).toBe("solicitudes-gremios");
   });
 
   it("calculates single guild assignment without touching other roles", () => {

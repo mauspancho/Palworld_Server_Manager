@@ -1,4 +1,5 @@
 enabled: true
+requestChannelName: "solicitudes-gremios"
 categoryName: "🏰 GREMIOS"
 privateChannels: true
 authorizedRoleNames:

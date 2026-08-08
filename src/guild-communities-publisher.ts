@@ -69,22 +69,39 @@ export async function fetchGuildRequestChannel(
   config: GuildsConfig,
   env: Pick<BotEnv, "GUILD_REQUEST_CHANNEL_ID">
 ): Promise<TextChannel> {
-  if (!env.GUILD_REQUEST_CHANNEL_ID) {
-    throw new SafeError("GUILD_REQUEST_CHANNEL_ID no esta configurado.");
-  }
-  const channel = await guild.channels.fetch(env.GUILD_REQUEST_CHANNEL_ID).catch(() => null);
-  if (!channel || channel.type !== ChannelType.GuildText) {
-    throw new SafeError("GUILD_REQUEST_CHANNEL_ID debe corresponder a un canal de texto existente.");
-  }
-  if (channel.guild.id !== guild.id) {
-    throw new SafeError("GUILD_REQUEST_CHANNEL_ID no pertenece al servidor configurado.");
-  }
   if (!botMember.permissions.has(PermissionFlagsBits.ManageChannels)) {
-    throw new SafeError("El bot necesita ManageChannels para asegurar la privacidad del canal de solicitudes de gremio.");
+    throw new SafeError("El bot necesita ManageChannels para crear o asegurar el canal de solicitudes de gremio.");
   }
+  const channel = await findOrCreateGuildRequestChannel(guild, botMember, config, env.GUILD_REQUEST_CHANNEL_ID);
   const overwrites = await guildRequestChannelOverwrites(guild, config, botMember);
   await channel.permissionOverwrites.set(overwrites, "Asegurar canal privado de solicitudes de gremio");
   return channel;
+}
+
+async function findOrCreateGuildRequestChannel(guild: Guild, botMember: GuildMember, config: GuildsConfig, configuredChannelId?: string): Promise<TextChannel> {
+  if (configuredChannelId) {
+    const configured = await guild.channels.fetch(configuredChannelId).catch(() => null);
+    if (configured?.type === ChannelType.GuildText) {
+      return configured;
+    }
+    if (configured) {
+      throw new SafeError("GUILD_REQUEST_CHANNEL_ID existe, pero no corresponde a un canal de texto.");
+    }
+  }
+  const channels = await guild.channels.fetch();
+  const existing = channels.find((channel): channel is TextChannel => channel?.type === ChannelType.GuildText && channel.name === config.requestChannelName);
+  if (existing) {
+    return existing;
+  }
+  const category = await ensureCategory(guild, config.categoryName);
+  const overwrites = await guildRequestChannelOverwrites(guild, config, botMember);
+  return await guild.channels.create({
+    name: config.requestChannelName,
+    type: ChannelType.GuildText,
+    parent: category.id,
+    permissionOverwrites: overwrites,
+    reason: "Crear canal privado de solicitudes de gremio"
+  });
 }
 
 async function ensureGuildRole(

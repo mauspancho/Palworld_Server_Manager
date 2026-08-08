@@ -83,6 +83,8 @@ PALWORLD_ANNOUNCEMENT_CHANNEL_ID=
 
 Nunca guardes tokens, contrasenas RCON ni secretos en Git.
 
+`GUILD_REQUEST_CHANNEL_ID` es opcional para gremios: si no se configura, el bot crea o reutiliza automaticamente el canal privado definido por `requestChannelName` en `config/guilds.yml`.
+
 ## Permisos E Intents
 
 Intents requeridos:
