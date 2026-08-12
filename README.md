@@ -8,7 +8,7 @@ Herramienta multiplataforma para administrar Discord y automatizaciones comunita
 - Bot permanente: bienvenida, DM de bienvenida, registro de entradas y asignacion segura de `MEMBER_ROLE_ID`.
 - Mensajes administrativos: `/mensaje` redacta desde el canal de registro, publica en chat general con `@everyone` y fija el mensaje.
 - Aceptacion de reglas: panel persistente unico en el canal de reglas, botones `Aceptar reglas` y `Rechazar reglas`, respuestas efimeras por usuario, rol pendiente opcional y acceso al chat general solo tras aceptar.
-- Canales informativos: permisos de solo lectura para bienvenida, reglas, anuncios, datos del servidor y seleccion de roles, con reparacion administrativa y proteccion secundaria.
+- Canales informativos: permisos de solo lectura para bienvenida, reglas, anuncios, datos del servidor, seleccion de roles y donaciones, con reparacion administrativa y proteccion secundaria.
 - Crianza Palworld: panel persistente, `/crianza` con autocompletado y datos locales versionados en `config/breeding-combinations.json`.
 - Self-roles: menus persistentes en `ROLES_CHANNEL_ID`.
 - Gremios: solicitudes aprobadas por administradores, lider de gremio, integrantes gestionados por el lider, roles y canales privados por gremio.
@@ -39,6 +39,7 @@ PENDING_MEMBER_ROLE_ID=
 MEMBER_LOG_CHANNEL_ID=
 BREEDING_CHANNEL_ID=
 GUILD_REQUEST_CHANNEL_ID=
+DONATIONS_CHANNEL_ID=
 ```
 
 Estado Palworld:
@@ -85,6 +86,8 @@ PALWORLD_ANNOUNCEMENT_CHANNEL_ID=
 Nunca guardes tokens, contrasenas RCON ni secretos en Git.
 
 `GUILD_REQUEST_CHANNEL_ID` es opcional para gremios: si no se configura, el bot crea o reutiliza automaticamente el canal privado definido por `requestChannelName` en `config/guilds.yml`.
+
+`DONATIONS_CHANNEL_ID` es opcional: si no se configura, la bienvenida busca el canal `💖・apoya-el-servidor` por nombre para mostrarlo como mencion.
 
 ## Permisos E Intents
 
@@ -154,7 +157,7 @@ El bot no intenta controlar acceso ocultando botones; el acceso real depende de 
 
 ## Canales Informativos
 
-Los canales `bienvenida`, `reglas`, `anuncios`, `datos-del-servidor` y `elige-tus-roles` deben ser de solo lectura para usuarios normales y miembros.
+Los canales `bienvenida`, `reglas`, `anuncios`, `datos-del-servidor`, `elige-tus-roles` y `apoya-el-servidor` deben ser de solo lectura para usuarios normales y miembros.
 
 Permisos aplicados a `@everyone`, `MEMBER_ROLE_ID` y `PENDING_MEMBER_ROLE_ID`:
 
@@ -227,6 +230,7 @@ npm run guilds:publish
 npm run status:publish
 npm run status:validate
 npm run tickets:publish
+npm run donations:publish
 npm run info:repair
 npm run breeding:publish
 npm run breeding:repair
@@ -238,7 +242,7 @@ npm run community:publish
 npm run validate:all
 ```
 
-`discord:apply`, `roles:publish`, `guilds:publish`, `status:publish`, `tickets:publish`, `info:repair`, `breeding:publish`, `breeding:repair`, `commands:register`, `commands:delete` y `community:publish` modifican Discord. Revisalos antes de ejecutarlos.
+`discord:apply`, `roles:publish`, `guilds:publish`, `status:publish`, `tickets:publish`, `donations:publish`, `info:repair`, `breeding:publish`, `breeding:repair`, `commands:register`, `commands:delete` y `community:publish` modifican Discord. Revisalos antes de ejecutarlos.
 
 ## Windows
 
@@ -295,6 +299,7 @@ npm run roles:publish
 npm run guilds:publish
 npm run status:publish
 npm run tickets:publish
+npm run donations:publish
 npm run breeding:publish
 ```
 
@@ -305,6 +310,8 @@ npm run community:publish
 ```
 
 No ejecuta `discord:apply`.
+
+`donations:publish` crea o reutiliza `💖・apoya-el-servidor`, asegura permisos de solo lectura para usuarios normales y publica o actualiza el mensaje de PayPal sin duplicarlo.
 
 ## Comandos Slash
 

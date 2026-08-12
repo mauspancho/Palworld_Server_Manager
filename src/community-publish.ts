@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 
-const publishScripts = ["roles:publish", "guilds:publish", "status:publish", "tickets:publish", "breeding:publish"];
+const publishScripts = ["roles:publish", "guilds:publish", "status:publish", "tickets:publish", "donations:publish", "breeding:publish"];
 
 async function main(): Promise<void> {
   for (const script of publishScripts) {

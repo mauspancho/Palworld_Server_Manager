@@ -9,6 +9,7 @@ export interface WelcomeMessageInput {
   rulesChannelId: string;
   rolesChannelId: string;
   generalChatChannelId?: string;
+  donationsChannelId?: string;
 }
 
 export function buildWelcomeEmbed(input: WelcomeMessageInput): EmbedBuilder {
@@ -23,8 +24,9 @@ export function buildWelcomeEmbed(input: WelcomeMessageInput): EmbedBuilder {
         "2. Acepta las reglas usando los botones del mensaje de reglas.",
         `3. Selecciona tus roles en <#${input.rolesChannelId}>.`,
         "4. Consulta los datos del servidor.",
-        `5. Cuando aceptes, continua en ${input.generalChatChannelId ? `<#${input.generalChatChannelId}>` : "el chat general"}.`
-      ].join("\n")
+        `5. Cuando aceptes, continua en ${input.generalChatChannelId ? `<#${input.generalChatChannelId}>` : "el chat general"}.`,
+        input.donationsChannelId ? `6. Si deseas apoyar el servidor: <#${input.donationsChannelId}>.` : undefined
+      ].filter((line): line is string => line !== undefined).join("\n")
     )
     .addFields(
       { name: "Fecha de entrada", value: formatDiscordTimestamp(input.joinedAt), inline: true },
@@ -39,7 +41,13 @@ export function buildWelcomeEmbed(input: WelcomeMessageInput): EmbedBuilder {
   return embed;
 }
 
-export function buildWelcomeMessageInput(member: GuildMember, rulesChannelId: string, rolesChannelId: string, generalChatChannelId?: string): WelcomeMessageInput {
+export function buildWelcomeMessageInput(
+  member: GuildMember,
+  rulesChannelId: string,
+  rolesChannelId: string,
+  generalChatChannelId?: string,
+  donationsChannelId?: string
+): WelcomeMessageInput {
   return {
     memberId: member.id,
     displayName: member.displayName,
@@ -48,7 +56,8 @@ export function buildWelcomeMessageInput(member: GuildMember, rulesChannelId: st
     memberCount: member.guild.memberCount,
     rulesChannelId,
     rolesChannelId,
-    generalChatChannelId
+    generalChatChannelId,
+    donationsChannelId
   };
 }
 

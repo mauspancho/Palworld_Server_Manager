@@ -11,7 +11,8 @@ describe("welcome message", () => {
       memberCount: 42,
       rulesChannelId: "rules",
       rolesChannelId: "roles",
-      generalChatChannelId: "general"
+      generalChatChannelId: "general",
+      donationsChannelId: "donations"
     }).toJSON();
 
     expect(embed.title).toBe("Bienvenido a XBOXPALSERVER");
@@ -19,6 +20,7 @@ describe("welcome message", () => {
     expect(embed.description).toContain("<#rules>");
     expect(embed.description).toContain("<#roles>");
     expect(embed.description).toContain("<#general>");
+    expect(embed.description).toContain("<#donations>");
     expect(embed.thumbnail?.url).toBe("https://cdn.example/avatar.png");
     expect(embed.fields?.some((field) => field.name === "Miembros actuales" && field.value === "42")).toBe(true);
   });

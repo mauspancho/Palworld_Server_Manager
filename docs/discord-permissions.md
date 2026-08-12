@@ -40,6 +40,7 @@ Canales protegidos:
 - anuncios
 - datos-del-servidor
 - elige-tus-roles
+- apoya-el-servidor
 
 Permisos esperados para `@everyone`, `MEMBER_ROLE_ID` y `PENDING_MEMBER_ROLE_ID`:
 

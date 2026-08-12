@@ -47,6 +47,7 @@ import {
   buildAdminMessageModal,
   validateAdminAnnouncementInput
 } from "../src/admin-message-components.js";
+import { buildDonationsMessagePayload, donationsPaypalUrl } from "../src/donations-panel.js";
 
 describe("forum structure", () => {
   it("loads forum channels and configured tags", async () => {
@@ -212,6 +213,17 @@ describe("admin messages", () => {
       "El titulo no puede estar vacio.",
       "El mensaje no puede estar vacio."
     ]);
+  });
+});
+
+describe("donations panel", () => {
+  it("builds the donation information message", () => {
+    const payload = buildDonationsMessagePayload();
+    const embed = payload.embeds[0]!.toJSON();
+
+    expect(embed.title).toBe("💖・apoya-el-servidor");
+    expect(embed.description).toContain(donationsPaypalUrl);
+    expect(embed.description).toContain("Gracias por apoyar a la comunidad");
   });
 });
 

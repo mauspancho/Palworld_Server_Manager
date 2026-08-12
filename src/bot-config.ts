@@ -14,6 +14,7 @@ export interface BotEnv {
   MEMBER_LOG_CHANNEL_ID: string;
   BREEDING_CHANNEL_ID?: string;
   GUILD_REQUEST_CHANNEL_ID?: string;
+  DONATIONS_CHANNEL_ID?: string;
 }
 
 const requiredKeys = [
@@ -39,7 +40,8 @@ export function loadBotEnv(rootDir: string): BotEnv {
     ...Object.fromEntries(requiredKeys.map((key) => [key, process.env[key]])),
     PENDING_MEMBER_ROLE_ID: process.env.PENDING_MEMBER_ROLE_ID || undefined,
     BREEDING_CHANNEL_ID: process.env.BREEDING_CHANNEL_ID || undefined,
-    GUILD_REQUEST_CHANNEL_ID: process.env.GUILD_REQUEST_CHANNEL_ID || undefined
+    GUILD_REQUEST_CHANNEL_ID: process.env.GUILD_REQUEST_CHANNEL_ID || undefined,
+    DONATIONS_CHANNEL_ID: process.env.DONATIONS_CHANNEL_ID || undefined
   } as unknown as BotEnv;
 }
 

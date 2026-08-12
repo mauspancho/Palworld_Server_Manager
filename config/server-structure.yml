@@ -19,6 +19,9 @@ categories:
         type: text
       - name: "🎭・elige-tus-roles"
         type: text
+      - name: "💖・apoya-el-servidor"
+        type: text
+        topic: "Aportes voluntarios para hosting, mantenimiento y mejoras del servidor."
 
   - name: "🌎 COMUNIDAD"
     channels:

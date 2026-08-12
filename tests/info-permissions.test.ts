@@ -21,7 +21,8 @@ const desired: DesiredStructure = {
         { name: "📜・reglas", type: "text" },
         { name: "📢・anuncios", type: "text" },
         { name: "🌐・datos-del-servidor", type: "text" },
-        { name: "🎭・elige-tus-roles", type: "text" }
+        { name: "🎭・elige-tus-roles", type: "text" },
+        { name: "💖・apoya-el-servidor", type: "text" }
       ]
     }
   ]
@@ -74,6 +75,7 @@ describe("information permissions", () => {
 
   it("protects only known information channels and allows administrative publishers", () => {
     expect(isInformationChannelName("📜・reglas")).toBe(true);
+    expect(isInformationChannelName("💖・apoya-el-servidor")).toBe(true);
     expect(isInformationChannelName("chat-general")).toBe(false);
     expect(canPublishInInformationChannel(["Miembro"], desired)).toBe(false);
     expect(canPublishInInformationChannel(["Admin"], desired)).toBe(true);

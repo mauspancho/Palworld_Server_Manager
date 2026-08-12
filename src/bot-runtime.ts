@@ -29,6 +29,7 @@ import {
   publishRulesPanel,
   publishRulesPromptForMember
 } from "./rules-acceptance.js";
+import { donationsChannelName } from "./donations-panel.js";
 
 interface ProcessedJoin {
   memberId: string;
@@ -185,7 +186,14 @@ export async function handleGuildMemberAdd(member: GuildMember, env: BotEnv, opt
 
   const welcomeChannel = await fetchTextChannel(member, env.WELCOME_CHANNEL_ID);
   const logChannel = await fetchTextChannel(member, env.MEMBER_LOG_CHANNEL_ID);
-  const embed = buildWelcomeEmbed(buildWelcomeMessageInput(member, env.RULES_CHANNEL_ID, env.ROLES_CHANNEL_ID, env.GENERAL_CHAT_CHANNEL_ID));
+  const donationsChannelId = await resolveDonationsChannelId(member, env);
+  const embed = buildWelcomeEmbed(buildWelcomeMessageInput(
+    member,
+    env.RULES_CHANNEL_ID,
+    env.ROLES_CHANNEL_ID,
+    env.GENERAL_CHAT_CHANNEL_ID,
+    donationsChannelId
+  ));
 
   await assignPendingRoleIfConfigured(member, env).catch((error) => {
     safeError("No se pudo asignar rol pendiente.", error, env);
@@ -234,6 +242,15 @@ async function fetchTextChannel(member: GuildMember, channelId: string): Promise
     throw new Error(`Canal de texto no disponible: ${channelId}`);
   }
   return channel;
+}
+
+async function resolveDonationsChannelId(member: GuildMember, env: BotEnv): Promise<string | undefined> {
+  if (env.DONATIONS_CHANNEL_ID) {
+    return env.DONATIONS_CHANNEL_ID;
+  }
+  const channels = await member.guild.channels.fetch().catch(() => null);
+  const channel = channels?.find((candidate) => candidate?.type === ChannelType.GuildText && candidate.name === donationsChannelName);
+  return channel?.id;
 }
 
 function cleanupProcessedJoins(): void {

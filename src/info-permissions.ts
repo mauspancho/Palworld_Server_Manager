@@ -21,7 +21,8 @@ export const informationChannelSlugs = [
   "reglas",
   "anuncios",
   "datos-del-servidor",
-  "elige-tus-roles"
+  "elige-tus-roles",
+  "apoya-el-servidor"
 ] as const;
 
 const defaultAdministrativeRoleNames = ["Admin", "Palworld Server Manager", "Moderador"];
