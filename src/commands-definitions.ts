@@ -92,6 +92,17 @@ export function slashCommandDefinitions(): RESTPostAPIChatInputApplicationComman
       name: "mensaje",
       description: "Redactar un anuncio para publicar y fijar en el chat general"
     },
+    {
+      name: "donaciones",
+      description: "Administrar el mensaje de donaciones",
+      options: [
+        {
+          type: ApplicationCommandOptionType.Subcommand,
+          name: "editar",
+          description: "Editar el mensaje del canal de donaciones"
+        }
+      ]
+    },
     { name: "estado", description: "Mostrar estado actual del servidor Palworld" },
     {
       name: "sugerencia",

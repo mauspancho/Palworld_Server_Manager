@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { PermissionFlagsBits } from "discord.js";
+import { ChannelType, Collection, PermissionFlagsBits, PermissionsBitField } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import { writeJsonAtomic, readJsonFile } from "../src/atomic-json.js";
 import { detectRaidRisk } from "../src/anti-raid.js";
@@ -47,7 +47,15 @@ import {
   buildAdminMessageModal,
   validateAdminAnnouncementInput
 } from "../src/admin-message-components.js";
-import { buildDonationsMessagePayload, donationsPaypalUrl } from "../src/donations-panel.js";
+import { buildDonationsMessagePayload, donationsPaypalUrl, validateDonationsMessageConfig } from "../src/donations-panel.js";
+import {
+  buildDonationsEditModal,
+  donationsBodyInputId,
+  donationsEditModalId,
+  donationsTitleInputId
+} from "../src/donations-components.js";
+import { donationsMessageConfigPath, readDonationsMessageConfig, writeDonationsMessageConfig } from "../src/donations-config.js";
+import { publishDonationsPanel } from "../src/donations-publisher.js";
 
 describe("forum structure", () => {
   it("loads forum channels and configured tags", async () => {
@@ -221,9 +229,98 @@ describe("donations panel", () => {
     const payload = buildDonationsMessagePayload();
     const embed = payload.embeds[0]!.toJSON();
 
-    expect(embed.title).toBe("💖・apoya-el-servidor");
+    expect(embed.title).toContain("apoya-el-servidor");
     expect(embed.description).toContain(donationsPaypalUrl);
     expect(embed.description).toContain("Gracias por apoyar a la comunidad");
+  });
+
+  it("builds the edit modal with current title and body", () => {
+    const modal = buildDonationsEditModal({ title: "Apoyo", body: "Texto actual" }).toJSON();
+    const serialized = JSON.stringify(modal);
+
+    expect(modal.custom_id).toBe(donationsEditModalId);
+    expect(serialized).toContain(donationsTitleInputId);
+    expect(serialized).toContain(donationsBodyInputId);
+    expect(serialized).toContain("Apoyo");
+    expect(serialized).toContain("Texto actual");
+  });
+
+  it("validates donation message title and body limits", () => {
+    expect(validateDonationsMessageConfig(" ", "Texto")).toContain("El titulo no puede estar vacio.");
+    expect(validateDonationsMessageConfig("Titulo", " ")).toContain("El mensaje no puede estar vacio.");
+    expect(validateDonationsMessageConfig("x".repeat(257), "Texto")).toContain("El titulo no puede exceder 256 caracteres.");
+    expect(validateDonationsMessageConfig("Titulo", "x".repeat(4001))).toContain("El mensaje no puede exceder 4000 caracteres.");
+    expect(validateDonationsMessageConfig("Titulo", "Texto")).toEqual([]);
+  });
+
+  it("persists custom donation text and keeps PayPal in the payload", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "palworld-donations-"));
+    const saved = await writeDonationsMessageConfig(dir, "Nuevo titulo", `Nuevo cuerpo\n${donationsPaypalUrl}`);
+    const loaded = await readDonationsMessageConfig(dir);
+    const embed = buildDonationsMessagePayload(loaded).embeds[0]!.toJSON();
+
+    expect(saved).toEqual({ title: "Nuevo titulo", body: "Nuevo cuerpo" });
+    expect(await readJsonFile(donationsMessageConfigPath(dir), {})).toEqual(saved);
+    expect(loaded).toEqual(saved);
+    expect(embed.title).toBe("Nuevo titulo");
+    expect(embed.description?.match(new RegExp(donationsPaypalUrl, "g"))).toHaveLength(1);
+  });
+
+  it("falls back to the default donation text without customization", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "palworld-donations-default-"));
+    await fs.mkdir(path.dirname(donationsMessageConfigPath(dir)), { recursive: true });
+    await fs.writeFile(donationsMessageConfigPath(dir), "", "utf8");
+    const loaded = await readDonationsMessageConfig(dir);
+
+    expect(loaded.title).toContain("apoya-el-servidor");
+    expect(loaded.body).toContain("Gracias por apoyar a la comunidad");
+  });
+
+  it("updates the existing donation message without sending duplicates", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "palworld-donations-publish-"));
+    await fs.mkdir(path.join(dir, "config"), { recursive: true });
+    await fs.writeFile(path.join(dir, "config", "server-structure.yml"), [
+      "protectedRoleNames: []",
+      "administrativeRoleNames: []",
+      "categories:",
+      "  - name: \"📌 INFORMACIÓN\"",
+      "    channels:",
+      "      - name: \"💖・apoya-el-servidor\"",
+      "        type: text"
+    ].join("\n"), "utf8");
+    await writeJsonAtomic(path.join(dir, "state", "donations-message.json"), {
+      guildId: "guild",
+      channelId: "donations-channel",
+      messageId: "donations-message"
+    });
+    await writeDonationsMessageConfig(dir, "Titulo persistido", "Cuerpo persistido");
+
+    let editCount = 0;
+    let sendCount = 0;
+    const existingMessage = {
+      id: "donations-message",
+      edit: vi.fn(async (payload) => {
+        editCount += 1;
+        return { id: "donations-message", payload };
+      })
+    };
+    const channel = fakeDonationsChannel(existingMessage, () => { sendCount += 1; });
+    const guild = fakeDonationsGuild(channel);
+    const botMember = {
+      id: "bot-user",
+      permissions: new PermissionsBitField([PermissionFlagsBits.ManageChannels])
+    };
+
+    const first = await publishDonationsPanel(dir, guild as any, botMember as any, { MEMBER_ROLE_ID: "member-role" });
+    const second = await publishDonationsPanel(dir, guild as any, botMember as any, { MEMBER_ROLE_ID: "member-role" });
+
+    expect(first.action).toBe("updated");
+    expect(second.action).toBe("updated");
+    expect(editCount).toBe(2);
+    expect(sendCount).toBe(0);
+    expect(existingMessage.edit).toHaveBeenCalledWith(expect.objectContaining({ embeds: expect.any(Array) }));
+    const lastPayload = existingMessage.edit.mock.calls.at(-1)?.[0];
+    expect(lastPayload.embeds[0].toJSON()).toMatchObject({ title: "Titulo persistido" });
   });
 });
 
@@ -286,6 +383,7 @@ describe("commands and atomic writes", () => {
     expect(names).toContain("gremio");
     expect(names).toContain("solicitudes-pendientes");
     expect(names).toContain("mensaje");
+    expect(names).toContain("donaciones");
     expect(names).toContain("estado");
     expect(names).toContain("crianza");
     expect(names).toContain("crianza-panel");
@@ -293,7 +391,9 @@ describe("commands and atomic writes", () => {
     const breeding = slashCommandDefinitions().find((command) => command.name === "crianza");
     expect(breeding?.options?.[0]).toMatchObject({ name: "pal", autocomplete: true });
     const guildOptions = slashCommandDefinitions().find((command) => command.name === "gremio")?.options?.map((option) => option.name) ?? [];
+    const donationsOptions = slashCommandDefinitions().find((command) => command.name === "donaciones")?.options?.map((option) => option.name) ?? [];
     expect(guildOptions).toEqual(expect.arrayContaining(["solicitar", "solicitudes", "aprobar", "rechazar", "agregar", "eliminar"]));
+    expect(donationsOptions).toContain("editar");
   });
 
   it("classifies public and restricted slash commands with default permissions", () => {
@@ -303,16 +403,19 @@ describe("commands and atomic writes", () => {
     expect(commandAccessLevel("gremio")).toBe("public");
     expect(commandAccessLevel("solicitudes-pendientes")).toBe("administrator");
     expect(commandAccessLevel("mensaje")).toBe("administrator");
+    expect(commandAccessLevel("donaciones")).toBe("administrator");
     expect(commandAccessLevel("crianza-panel")).toBe("administrator");
     expect(publicCommandNames()).toContain("crianza");
     expect(publicCommandNames()).toContain("gremio");
     expect(restrictedCommandNames()).toContain("crianza-panel");
     expect(restrictedCommandNames()).toContain("solicitudes-pendientes");
     expect(restrictedCommandNames()).toContain("mensaje");
+    expect(restrictedCommandNames()).toContain("donaciones");
     expect(commands.get("crianza")?.default_member_permissions).toBeUndefined();
     expect(commands.get("gremio")?.default_member_permissions).toBeUndefined();
     expect(commands.get("solicitudes-pendientes")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("mensaje")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
+    expect(commands.get("donaciones")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("crianza-panel")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("informacion")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("palworld")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
@@ -324,6 +427,10 @@ describe("commands and atomic writes", () => {
     const normal = commandInteraction("palworld", []);
     await handleBotInteraction(normal as any, botEnv(), process.cwd());
     expect(normal.reply).toHaveBeenCalledWith({ content: "No tienes permisos para utilizar este comando.", flags: 64 });
+
+    const normalDonations = commandInteraction("donaciones", []);
+    await handleBotInteraction(normalDonations as any, botEnv(), process.cwd());
+    expect(normalDonations.reply).toHaveBeenCalledWith({ content: "No tienes permisos para utilizar este comando.", flags: 64 });
 
     const admin = commandInteraction("palworld", ["Admin"]);
     await handleBotInteraction(admin as any, botEnv(), process.cwd());
@@ -380,5 +487,46 @@ function botEnv() {
     MEMBER_ROLE_ID: "member",
     MEMBER_LOG_CHANNEL_ID: "log",
     BREEDING_CHANNEL_ID: "breeding"
+  };
+}
+
+function fakeDonationsChannel(existingMessage: { id: string; edit: ReturnType<typeof vi.fn> }, onSend: () => void) {
+  return {
+    id: "donations-channel",
+    name: "💖・apoya-el-servidor",
+    type: ChannelType.GuildText,
+    client: { user: { id: "bot-user" } },
+    permissionOverwrites: {
+      cache: new Map(),
+      edit: vi.fn(async () => undefined)
+    },
+    messages: {
+      fetch: vi.fn(async (input?: unknown) => {
+        if (input === "donations-message") {
+          return existingMessage;
+        }
+        return new Collection();
+      })
+    },
+    send: vi.fn(async () => {
+      onSend();
+      return { id: "new-message" };
+    })
+  };
+}
+
+function fakeDonationsGuild(channel: ReturnType<typeof fakeDonationsChannel>) {
+  const channels = new Collection<string, any>([[channel.id, channel]]);
+  return {
+    id: "guild",
+    roles: {
+      everyone: { id: "everyone" }
+    },
+    channels: {
+      fetch: vi.fn(async () => channels),
+      create: vi.fn(async () => {
+        throw new Error("No debe crear canal en esta prueba.");
+      })
+    }
   };
 }

@@ -23,6 +23,7 @@ import {
   donationsPaypalUrl
 } from "./donations-panel.js";
 import type { BotEnv } from "./bot-config.js";
+import { readDonationsMessageConfig } from "./donations-config.js";
 
 const donationReadOnlyOverwrite: PermissionOverwriteOptions = {
   ViewChannel: true,
@@ -46,10 +47,18 @@ export interface DonationsPublishResult {
   updatedOverwrites: number;
 }
 
-interface DonationsMessageState {
+export interface DonationsMessageState {
   guildId?: string;
   channelId?: string;
   messageId?: string;
+}
+
+export function donationsMessageStatePath(rootDir: string): string {
+  return path.join(rootDir, "state", donationsMessageStateFile);
+}
+
+export async function readDonationsMessageState(rootDir: string): Promise<DonationsMessageState> {
+  return await readJsonFile<DonationsMessageState>(donationsMessageStatePath(rootDir), {});
 }
 
 export async function publishDonationsPanel(
@@ -68,12 +77,13 @@ export async function publishDonationsPanel(
   const desired = await loadDesiredStructure(path.join(rootDir, "config", "server-structure.yml"));
   const ensured = await ensureDonationsChannel(guild, desired);
   const updatedOverwrites = await repairDonationsChannelPermissions(ensured.channel, guild, botMember, env, desired);
-  const statePath = path.join(rootDir, "state", donationsMessageStateFile);
-  const state = await readJsonFile<DonationsMessageState>(statePath, {});
+  const statePath = donationsMessageStatePath(rootDir);
+  const state = await readDonationsMessageState(rootDir);
+  const config = await readDonationsMessageConfig(rootDir);
   const existing = await findExistingDonationsMessage(ensured.channel, state);
   const message = existing
-    ? await existing.edit(buildDonationsMessagePayload())
-    : await ensured.channel.send(buildDonationsMessagePayload());
+    ? await existing.edit(buildDonationsMessagePayload(config))
+    : await ensured.channel.send(buildDonationsMessagePayload(config));
 
   await writeJsonAtomic(statePath, {
     guildId: guild.id,
@@ -148,7 +158,7 @@ async function donationsPermissionOverwrites(
   ];
 }
 
-async function findExistingDonationsMessage(channel: TextChannel, state: DonationsMessageState): Promise<Message | null> {
+export async function findExistingDonationsMessage(channel: TextChannel, state: DonationsMessageState): Promise<Message | null> {
   if (state.channelId === channel.id && state.messageId) {
     const byState = await channel.messages.fetch(state.messageId).catch(() => null);
     if (byState) {

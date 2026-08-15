@@ -6,7 +6,8 @@ import {
   Interaction,
   MessageFlags,
   ModalSubmitInteraction,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  TextChannel
 } from "discord.js";
 import path from "node:path";
 import type { BotEnv } from "./bot-config.js";
@@ -70,6 +71,15 @@ import {
   isAdminMessageModal,
   validateAdminAnnouncementInput
 } from "./admin-message-components.js";
+import { readDonationsMessageConfig, writeDonationsMessageConfig } from "./donations-config.js";
+import {
+  donationsBodyInputId,
+  donationsTitleInputId,
+  buildDonationsEditModal,
+  isDonationsEditModal
+} from "./donations-components.js";
+import { buildDonationsMessagePayload, donationsChannelName, normalizeDonationsMessageConfig, validateDonationsMessageConfig } from "./donations-panel.js";
+import { findExistingDonationsMessage, readDonationsMessageState } from "./donations-publisher.js";
 
 export async function handleBotInteraction(interaction: Interaction, env: BotEnv, rootDir: string): Promise<boolean> {
   if (!interaction.guild || interaction.guildId !== env.DISCORD_GUILD_ID) {
@@ -87,6 +97,10 @@ export async function handleBotInteraction(interaction: Interaction, env: BotEnv
   }
   if (isModalSubmitInteraction(interaction) && isAdminMessageModal(interaction.customId)) {
     await handleAdminMessageModalSubmit(interaction, env, rootDir);
+    return true;
+  }
+  if (isModalSubmitInteraction(interaction) && isDonationsEditModal(interaction.customId)) {
+    await handleDonationsEditModalSubmit(interaction, env, rootDir);
     return true;
   }
   if (interaction.isChatInputCommand()) {
@@ -112,6 +126,9 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
   switch (interaction.commandName) {
     case "mensaje":
       await handleAdminMessageCommand(interaction, env);
+      return;
+    case "donaciones":
+      await handleDonationsCommand(interaction, env, rootDir);
       return;
     case "solicitudes-pendientes":
       await handlePendingGuildRequestsCommand(interaction, env, rootDir);
@@ -162,6 +179,21 @@ async function handleAdminMessageCommand(interaction: ChatInputCommandInteractio
     return;
   }
   await interaction.showModal(buildAdminMessageModal());
+}
+
+async function handleDonationsCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  const sub = interaction.options.getSubcommand();
+  if (sub !== "editar") {
+    await interaction.reply({ content: "Subcomando no reconocido.", flags: MessageFlags.Ephemeral });
+    return;
+  }
+  const located = await locateExistingDonationsMessage(interaction, env, rootDir);
+  if (!located) {
+    await interaction.reply({ content: "No existe todavia un mensaje de donaciones. Publica primero el panel de donaciones.", flags: MessageFlags.Ephemeral });
+    return;
+  }
+  const config = await readDonationsMessageConfig(rootDir);
+  await interaction.showModal(buildDonationsEditModal(config));
 }
 
 async function requireCommandAccessOrReply(interaction: ChatInputCommandInteraction): Promise<boolean> {
@@ -509,6 +541,44 @@ async function handleAdminMessageModalSubmit(interaction: ModalSubmitInteraction
   }
 }
 
+async function handleDonationsEditModalSubmit(interaction: ModalSubmitInteraction, env: BotEnv, rootDir: string): Promise<void> {
+  const actor = interaction.member instanceof GuildMember ? interaction.member : await interaction.guild!.members.fetch(interaction.user.id);
+  if (!memberHasAnyRole(actor, adminRoleNames())) {
+    await interaction.reply({ content: "No tienes permisos para editar el mensaje de donaciones.", flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  const title = interaction.fields.getTextInputValue(donationsTitleInputId);
+  const body = interaction.fields.getTextInputValue(donationsBodyInputId);
+  const normalizedConfig = normalizeDonationsMessageConfig(title, body);
+  const validationErrors = validateDonationsMessageConfig(normalizedConfig.title, normalizedConfig.body);
+  if (validationErrors.length > 0) {
+    await interaction.reply({ content: validationErrors.join("\n"), flags: MessageFlags.Ephemeral });
+    return;
+  }
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const located = await locateExistingDonationsMessage(interaction, env, rootDir);
+  if (!located) {
+    await interaction.editReply("No existe todavia un mensaje de donaciones. Publica primero el panel de donaciones.");
+    return;
+  }
+
+  try {
+    const edited = await located.message.edit(buildDonationsMessagePayload(normalizedConfig));
+    await writeDonationsMessageConfig(rootDir, normalizedConfig.title, normalizedConfig.body);
+    await logDonationsMessageEdit(rootDir, interaction, {
+      guildId: interaction.guild!.id,
+      channelId: located.channel.id,
+      messageId: edited.id
+    });
+    await interaction.editReply("Mensaje de donaciones actualizado.");
+  } catch (error) {
+    const message = error instanceof Error ? sanitizeSecret(error.message, botEnvSecrets(env)) : sanitizeSecret(String(error), botEnvSecrets(env));
+    await interaction.editReply(`No se pudo actualizar el mensaje de donaciones: ${message}`);
+  }
+}
+
 async function handleGuildApproveCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const requestId = interaction.options.getString("solicitud", true);
@@ -777,6 +847,47 @@ async function notifyGuildRequester(
 ): Promise<void> {
   const member = await interaction.guild?.members.fetch(record.ownerId).catch(() => null);
   await member?.send({ content: sanitizeSecret(content, botEnvSecrets(env)) }).catch(() => undefined);
+}
+
+async function locateExistingDonationsMessage(
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
+  env: BotEnv,
+  rootDir: string
+) {
+  const channel = await fetchDonationsChannel(interaction, env);
+  if (!channel) {
+    return null;
+  }
+  const state = await readDonationsMessageState(rootDir);
+  const message = await findExistingDonationsMessage(channel, state);
+  return message ? { channel, message } : null;
+}
+
+async function fetchDonationsChannel(
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
+  env: BotEnv
+): Promise<TextChannel | null> {
+  if (env.DONATIONS_CHANNEL_ID) {
+    const configured = await interaction.guild!.channels.fetch(env.DONATIONS_CHANNEL_ID).catch(() => null);
+    return configured?.type === ChannelType.GuildText ? configured : null;
+  }
+  const channels = await interaction.guild!.channels.fetch().catch(() => null);
+  return channels?.find((channel): channel is TextChannel => channel?.type === ChannelType.GuildText && channel.name === donationsChannelName) ?? null;
+}
+
+async function logDonationsMessageEdit(
+  rootDir: string,
+  interaction: ModalSubmitInteraction,
+  details: { guildId: string; channelId: string; messageId: string }
+): Promise<void> {
+  const logger = new OperationLogger(path.join(rootDir, "logs"), botEnvSecrets());
+  await logger.log("Mensaje de donaciones editado desde Discord.", {
+    userId: interaction.user.id,
+    guildId: details.guildId,
+    channelId: details.channelId,
+    messageId: details.messageId,
+    editedAt: new Date().toISOString()
+  }).catch(() => undefined);
 }
 
 function optionalGuildRequestUsers(interaction: ChatInputCommandInteraction) {

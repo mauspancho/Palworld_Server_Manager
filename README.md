@@ -313,6 +313,14 @@ No ejecuta `discord:apply`.
 
 `donations:publish` crea o reutiliza `💖・apoya-el-servidor`, asegura permisos de solo lectura para usuarios normales y publica o actualiza el mensaje de PayPal sin duplicarlo.
 
+El texto del mensaje puede editarse desde Discord con `/donaciones editar`. El bot abre un modal con el titulo y cuerpo actuales, actualiza el mismo mensaje existente y guarda la personalizacion en:
+
+```txt
+data/donations-message-config.json
+```
+
+`donations:publish` y `community:publish` respetan esa personalizacion y no restauran el texto predeterminado mientras exista una configuracion valida.
+
 ## Comandos Slash
 
 Durante desarrollo se registran solo en `DISCORD_GUILD_ID`.
@@ -328,6 +336,8 @@ La visibilidad en Discord no sustituye las validaciones internas de roles.
 Para recuperar solicitudes antiguas de gremio que quedaron pendientes sin tarjeta de revision, registra comandos y usa `/solicitudes-pendientes`. El bot publicara las tarjetas con botones en el canal privado de solicitudes.
 
 Para enviar un anuncio administrativo, usa `/mensaje` desde el canal configurado en `MEMBER_LOG_CHANNEL_ID`. Discord mostrara un modal con titulo y cuerpo; al enviarlo, el bot publicara el mensaje en `GENERAL_CHAT_CHANNEL_ID` con `@everyone` y lo fijara.
+
+Para editar el texto del canal de donaciones sin modificar archivos manualmente, usa `/donaciones editar`. Debe existir primero el mensaje publicado por `npm run donations:publish`.
 
 ## Desactivar Modulos
 
