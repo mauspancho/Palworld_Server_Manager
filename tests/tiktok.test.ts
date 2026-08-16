@@ -17,7 +17,7 @@ import { handleTikTokOAuthCallback, runTikTokPollingOnce, startTikTokOAuth, ensu
 import { TikTokStore, addOAuthState, consumeOAuthState, emptyTikTokState, findActiveOAuthState, findAnyActivePendingConnection, hasPublishedVideo, markVideoPublished, markVideosPublished, tiktokStatePath, upsertPendingConnection } from "../src/tiktok-store.js";
 import { sanitizeTikTokText } from "../src/tiktok-sanitize.js";
 import type { BotEnv } from "../src/bot-config.js";
-import type { TikTokEnv, TikTokPendingConnection, TikTokVideo } from "../src/tiktok-types.js";
+import type { TikTokEnv, TikTokPendingConnection, TikTokTokenResponse, TikTokVideo } from "../src/tiktok-types.js";
 
 const originalEnv = { ...process.env };
 
@@ -465,6 +465,72 @@ describe("tiktok interaction routing", () => {
     }));
   });
 
+  it("keeps OAuth processing active while callback exchange is paused", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await handleTikTokCommand(fakeCommandInteraction("conectar", "admin-a") as any, botEnv(), dir);
+    const stateValue = (await store.read()).oauthStates[0]!.state;
+    const exchangeGate = deferred<TikTokTokenResponse>();
+    const exchangeStarted = deferred<void>();
+    const sendDm = vi.fn(async () => undefined);
+    const ctx = context(dir, store, fakeApi({
+      exchangeCode: vi.fn(async () => {
+        exchangeStarted.resolve();
+        return exchangeGate.promise;
+      }),
+      userInfo: async () => ({ openId: "open-a", displayName: "Creator A" })
+    }));
+
+    const callbackPromise = handleTikTokOAuthCallback(ctx, { code: "code-a", state: stateValue, sendDm, now: new Date() });
+    await exchangeStarted.promise;
+    const during = await store.read();
+    const adminB = fakeCommandInteraction("conectar", "admin-b");
+
+    await handleTikTokCommand(adminB as any, botEnv(), dir);
+    exchangeGate.resolve(tokenResponse("access-a", "refresh-a"));
+    const result = await callbackPromise;
+    const after = await store.read();
+
+    expect(during.oauthStates).toHaveLength(1);
+    expect(during.oauthStates[0]?.used).toBe(true);
+    expect(during.oauthStates[0]?.processing).toBe(true);
+    expect(findActiveOAuthState(during)).toBeTruthy();
+    expect(adminB.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining("proceso de conexion TikTok en curso"),
+      flags: 64
+    }));
+    expect(result.status).toBe(200);
+    expect(after.oauthStates).toHaveLength(0);
+    expect(after.pendingConnections).toHaveLength(1);
+    expect(after.pendingConnections[0]?.openId).toBe("open-a");
+  });
+
+  it("releases OAuth processing after exchangeCode failure", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await handleTikTokCommand(fakeCommandInteraction("conectar", "admin-a") as any, botEnv(), dir);
+    const stateValue = (await store.read()).oauthStates[0]!.state;
+    const ctx = context(dir, store, fakeApi({
+      exchangeCode: vi.fn(async () => {
+        throw new Error("exchange failed");
+      })
+    }));
+
+    const result = await handleTikTokOAuthCallback(ctx, { code: "bad-code", state: stateValue, sendDm: async () => undefined });
+    const adminB = fakeCommandInteraction("conectar", "admin-b");
+    await handleTikTokCommand(adminB as any, botEnv(), dir);
+    const after = await store.read();
+
+    expect(result.status).toBe(500);
+    expect(after.oauthStates.filter((entry) => !entry.used)).toHaveLength(1);
+    expect(adminB.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining("Abre el enlace"),
+      flags: 64
+    }));
+  });
+
   it("blocks a second /tiktok conectar while a pending connection is active", async () => {
     const dir = await tempDir();
     setTikTokEnabledEnv();
@@ -613,6 +679,34 @@ describe("tiktok interaction routing", () => {
     expect(count).toBe(1);
     expect(revoke).toHaveBeenCalledWith("access");
     expect((await store.read()).pendingConnections).toHaveLength(0);
+  });
+
+  it("cleans expired OAuth processing entries and allows a new connection process", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await store.update((state) => {
+      state.oauthStates.push({
+        state: "processing-old",
+        discordUserId: "admin-a",
+        createdAt: "2026-08-15T00:00:00.000Z",
+        expiresAt: "2026-08-15T00:10:00.000Z",
+        used: true,
+        processing: true
+      });
+    });
+
+    await cleanupTikTokExpiredArtifacts(context(dir, store), new Date("2026-08-15T00:11:00.000Z"));
+    const adminB = fakeCommandInteraction("conectar", "admin-b");
+    await handleTikTokCommand(adminB as any, botEnv(), dir);
+    const data = await store.read();
+
+    expect(data.oauthStates).toHaveLength(1);
+    expect(data.oauthStates[0]?.state).not.toBe("processing-old");
+    expect(adminB.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining("Abre el enlace"),
+      flags: 64
+    }));
   });
 
   it("replies safely when TikTok API fails after deferReply", async () => {
@@ -786,6 +880,16 @@ function tokenResponse(accessToken: string, refreshToken: string, scope = "user.
     open_id: "open-1",
     scope
   };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
 }
 
 function oauthState(state: string, userId: string) {

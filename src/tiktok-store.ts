@@ -68,7 +68,10 @@ export function normalizeTikTokState(value: Partial<TikTokState> | null | undefi
 }
 
 export function pruneExpiredOAuthEntries(state: TikTokState, now = new Date()): void {
-  state.oauthStates = state.oauthStates.filter((entry) => !entry.used && new Date(entry.expiresAt).getTime() > now.getTime());
+  state.oauthStates = state.oauthStates.filter((entry) => {
+    const isActive = new Date(entry.expiresAt).getTime() > now.getTime();
+    return isActive && (!entry.used || entry.processing === true);
+  });
 }
 
 export function addOAuthState(state: TikTokState, entry: TikTokOAuthState): void {
@@ -82,11 +85,16 @@ export function consumeOAuthState(state: TikTokState, oauthState: string, now = 
     return null;
   }
   entry.used = true;
+  entry.processing = true;
   return entry;
 }
 
 export function findActiveOAuthState(state: TikTokState, now = new Date()): TikTokOAuthState | null {
-  return state.oauthStates.find((entry) => !entry.used && new Date(entry.expiresAt).getTime() > now.getTime()) ?? null;
+  return state.oauthStates.find((entry) => (!entry.used || entry.processing === true) && new Date(entry.expiresAt).getTime() > now.getTime()) ?? null;
+}
+
+export function removeOAuthState(state: TikTokState, oauthState: string): void {
+  state.oauthStates = state.oauthStates.filter((entry) => entry.state !== oauthState);
 }
 
 export function upsertPendingConnection(state: TikTokState, pending: TikTokPendingConnection): void {

@@ -20,6 +20,8 @@ import {
   latestVideoId,
   markVideoPublished,
   markVideosPublished,
+  pruneExpiredOAuthEntries,
+  removeOAuthState,
   removePendingConnection,
   saveConnection,
   takeAllPendingConnections,
@@ -80,7 +82,8 @@ export async function startTikTokOAuth(ctx: TikTokServiceContext, discordUserId:
       discordUserId,
       createdAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + oauthTtlMs).toISOString(),
-      used: false
+      used: false,
+      processing: false
     });
   });
   await logTikTok(ctx, "TikTok OAuth iniciado.", { discordUserId });
@@ -105,10 +108,10 @@ export async function handleTikTokOAuthCallback(ctx: TikTokServiceContext, input
     await logTikTok(ctx, "TikTok OAuth rechazado por state invalido o expirado.");
     return { status: 400, body: safeHtml("La autorizacion expiro o ya fue utilizada. Inicia /tiktok conectar nuevamente.") };
   }
-  await cleanupTikTokExpiredArtifacts(ctx, now);
 
   let tokenResponse: TikTokTokenResponse | null = null;
   try {
+    await cleanupTikTokExpiredArtifacts(ctx, now);
     tokenResponse = await api.exchangeCode(input.code);
     const scopes = grantedScopes(tokenResponse.scope);
     if (!hasRequiredScopes(scopes)) {
@@ -167,6 +170,8 @@ export async function handleTikTokOAuthCallback(ctx: TikTokServiceContext, input
     }
     await logTikTok(ctx, "TikTok OAuth fallo.", { error: sanitizeTikTokError(error, ctx.env, ctx.tiktokEnv) });
     return { status: 500, body: safeHtml("No se pudo completar la autorizacion de TikTok. Intenta nuevamente.") };
+  } finally {
+    await finishTikTokOAuthProcessing(ctx, oauthEntry.state);
   }
 }
 
@@ -378,7 +383,7 @@ export async function publishTikTokManualVideo(ctx: TikTokServiceContext, guild:
 export async function cleanupTikTokExpiredArtifacts(ctx: TikTokServiceContext, now = new Date()): Promise<number> {
   const store = ctx.store ?? new TikTokStore(ctx.rootDir);
   const expiredPending = await store.update((data) => {
-    data.oauthStates = data.oauthStates.filter((entry) => !entry.used && new Date(entry.expiresAt).getTime() > now.getTime());
+    pruneExpiredOAuthEntries(data, now);
     return takeExpiredPendingConnections(data, now);
   });
   for (const pending of expiredPending) {
@@ -416,6 +421,13 @@ async function revokeConnection(ctx: TikTokServiceContext, connection: TikTokCon
   const api = ctx.api ?? new TikTokApiClient(ctx.tiktokEnv);
   const token = decryptToken(connection.encryptedAccessToken, ctx.tiktokEnv.tokenEncryptionKey);
   await api.revokeToken(token).catch((error) => logTikTok(ctx, "TikTok revoke connection fallo.", { error: sanitizeTikTokError(error, ctx.env, ctx.tiktokEnv) }));
+}
+
+async function finishTikTokOAuthProcessing(ctx: TikTokServiceContext, oauthState: string): Promise<void> {
+  const store = ctx.store ?? new TikTokStore(ctx.rootDir);
+  await store.update((data) => removeOAuthState(data, oauthState)).catch((error) => {
+    return logTikTok(ctx, "TikTok OAuth processing cleanup fallo.", { error: sanitizeTikTokError(error, ctx.env, ctx.tiktokEnv) });
+  });
 }
 
 function expiresAt(now: Date, seconds: number): string {

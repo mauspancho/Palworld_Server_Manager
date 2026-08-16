@@ -29,6 +29,7 @@ export interface TikTokOAuthState {
   createdAt: string;
   expiresAt: string;
   used: boolean;
+  processing?: boolean;
 }
 
 export interface TikTokPendingConnection {
