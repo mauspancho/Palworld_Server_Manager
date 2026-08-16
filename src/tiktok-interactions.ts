@@ -49,7 +49,7 @@ import {
   publishTikTokManualVideo,
   startTikTokOAuth
 } from "./tiktok-service.js";
-import { TikTokStore, findActivePendingConnectionForUser } from "./tiktok-store.js";
+import { TikTokStore, findActiveOAuthState, findAnyActivePendingConnection } from "./tiktok-store.js";
 import { sanitizeTikTokError, sanitizeTikTokText, tiktokLogSecrets } from "./tiktok-sanitize.js";
 import type { TikTokConnection, TikTokEnv } from "./tiktok-types.js";
 
@@ -127,10 +127,17 @@ export async function handleTikTokCommand(interaction: ChatInputCommandInteracti
         await cleanupTikTokExpiredArtifacts(ctx);
         const freshState = await store.read();
         if (freshState.connection) {
-          await interaction.reply({ content: "Ya hay una cuenta TikTok conectada. Usa /tiktok desconectar antes de conectar otra.", flags: MessageFlags.Ephemeral });
+          await interaction.reply({ content: "Ya hay una cuenta TikTok conectada.", flags: MessageFlags.Ephemeral });
           return;
         }
-        if (findActivePendingConnectionForUser(freshState, interaction.user.id)) {
+        if (findActiveOAuthState(freshState)) {
+          await interaction.reply({
+            content: "Ya existe un proceso de conexion TikTok en curso.\nFinalizalo o espera a que expire.",
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+        if (findAnyActivePendingConnection(freshState)) {
           await interaction.reply({
             content: "Ya existe una conexion TikTok pendiente de confirmacion.\nRevisa tus mensajes directos o cancela/vuelve a intentar cuando expire.",
             flags: MessageFlags.Ephemeral

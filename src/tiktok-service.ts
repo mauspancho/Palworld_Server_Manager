@@ -13,6 +13,8 @@ import {
   addOAuthState,
   clearConnection,
   consumeOAuthState,
+  findActiveOAuthState,
+  findAnyActivePendingConnection,
   findPendingConnection,
   hasPublishedVideo,
   latestVideoId,
@@ -20,6 +22,7 @@ import {
   markVideosPublished,
   removePendingConnection,
   saveConnection,
+  takeAllPendingConnections,
   takePendingConnection,
   takeExpiredPendingConnections,
   upsertPendingConnection
@@ -63,6 +66,15 @@ export async function startTikTokOAuth(ctx: TikTokServiceContext, discordUserId:
   await cleanupTikTokExpiredArtifacts(ctx, now);
   const state = randomTikTokId("tto");
   await store.update((data) => {
+    if (data.connection) {
+      throw new Error("Ya hay una cuenta TikTok conectada.");
+    }
+    if (findActiveOAuthState(data, now)) {
+      throw new Error("Ya existe un proceso de conexion TikTok en curso.");
+    }
+    if (findAnyActivePendingConnection(data, now)) {
+      throw new Error("Ya existe una conexion TikTok pendiente de confirmacion.");
+    }
     addOAuthState(data, {
       state,
       discordUserId,
@@ -93,6 +105,7 @@ export async function handleTikTokOAuthCallback(ctx: TikTokServiceContext, input
     await logTikTok(ctx, "TikTok OAuth rechazado por state invalido o expirado.");
     return { status: 400, body: safeHtml("La autorizacion expiro o ya fue utilizada. Inicia /tiktok conectar nuevamente.") };
   }
+  await cleanupTikTokExpiredArtifacts(ctx, now);
 
   let tokenResponse: TikTokTokenResponse | null = null;
   try {
@@ -117,7 +130,27 @@ export async function handleTikTokOAuthCallback(ctx: TikTokServiceContext, input
       refreshTokenExpiresAt: expiresAt(now, tokenResponse.refresh_expires_in),
       expiresAt: new Date(now.getTime() + oauthTtlMs).toISOString()
     };
-    await store.update((data) => upsertPendingConnection(data, pending));
+    const pendingOutcome = await store.update((data) => {
+      if (data.connection) {
+        return "connected" as const;
+      }
+      const activePending = findAnyActivePendingConnection(data, now);
+      if (activePending && activePending.state !== pending.state) {
+        return "pending" as const;
+      }
+      upsertPendingConnection(data, pending);
+      return "saved" as const;
+    });
+    if (pendingOutcome === "connected") {
+      await api.revokeToken(tokenResponse.access_token).catch(() => undefined);
+      await logTikTok(ctx, "TikTok OAuth callback descartado por conexion existente.", { discordUserId: oauthEntry.discordUserId });
+      return { status: 409, body: safeHtml("Ya existe una cuenta TikTok conectada.") };
+    }
+    if (pendingOutcome === "pending") {
+      await api.revokeToken(tokenResponse.access_token).catch(() => undefined);
+      await logTikTok(ctx, "TikTok OAuth callback descartado por pending existente.", { discordUserId: oauthEntry.discordUserId });
+      return { status: 409, body: safeHtml("Ya existe una conexion TikTok pendiente de confirmacion.") };
+    }
     try {
       await input.sendDm(oauthEntry.discordUserId, buildTikTokPendingConfirmationPayload({ state: pending.state, displayName: pending.displayName }));
     } catch (dmError) {
@@ -178,15 +211,28 @@ export async function confirmTikTokPendingConnection(ctx: TikTokServiceContext, 
   connection.lastCheckAt = now.toISOString();
   connection.lastSuccessAt = now.toISOString();
   connection.lastVideoId = latestVideoId(baseline.videos);
-  await store.update((data) => {
+  const finalOutcome = await store.update((data) => {
     const currentPending = findPendingConnection(data, input.pendingState);
     if (!currentPending || currentPending.discordUserId !== input.discordUserId || currentPending.openId !== pending.openId) {
       throw new Error("La confirmacion TikTok expiro o cambio mientras se validaba.");
     }
+    if (data.connection) {
+      removePendingConnection(data, input.pendingState);
+      return "lost-race" as const;
+    }
     removePendingConnection(data, input.pendingState);
     saveConnection(data, connection);
     markVideosPublished(data, connection.openId, baseline.videos, now);
+    return "saved" as const;
   });
+  if (finalOutcome === "lost-race") {
+    await revokePending(ctx, pending);
+    await logTikTok(ctx, "TikTok confirmacion descartada por conexion existente.", {
+      discordUserId: input.discordUserId,
+      openId: maskIdentifier(pending.openId)
+    });
+    throw new Error("Otra cuenta TikTok fue conectada mientras se procesaba esta solicitud.");
+  }
   await logTikTok(ctx, "TikTok cuenta conectada.", {
     discordUserId: input.discordUserId,
     openId: maskIdentifier(connection.openId),
@@ -212,12 +258,21 @@ export async function cancelTikTokPendingConnection(ctx: TikTokServiceContext, p
 
 export async function disconnectTikTokConnection(ctx: TikTokServiceContext): Promise<boolean> {
   const store = ctx.store ?? new TikTokStore(ctx.rootDir);
-  const connection = await store.update((data) => clearConnection(data));
-  if (!connection) {
+  const cleared = await store.update((data) => ({
+    connection: clearConnection(data),
+    pendingConnections: takeAllPendingConnections(data)
+  }));
+  for (const pending of cleared.pendingConnections) {
+    await revokePending(ctx, pending);
+  }
+  if (!cleared.connection) {
     return false;
   }
-  await revokeConnection(ctx, connection);
-  await logTikTok(ctx, "TikTok cuenta desconectada.", { openId: maskIdentifier(connection.openId) });
+  await revokeConnection(ctx, cleared.connection);
+  await logTikTok(ctx, "TikTok cuenta desconectada.", {
+    openId: maskIdentifier(cleared.connection.openId),
+    pendingRevoked: cleared.pendingConnections.length
+  });
   return true;
 }
 

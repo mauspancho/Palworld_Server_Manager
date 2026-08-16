@@ -13,8 +13,8 @@ import { createTikTokRepublishSession, currentTikTokRepublishPage, moveTikTokRep
 import { handleTikTokCommand, handleTikTokGuildComponent, handleTikTokPendingDmButton } from "../src/tiktok-interactions.js";
 import { tiktokPendingConfirmPrefix } from "../src/tiktok-components.js";
 import { tiktokRepublishNextPrefix, tiktokRepublishSelectPrefix } from "../src/tiktok-republish-ui.js";
-import { handleTikTokOAuthCallback, runTikTokPollingOnce, startTikTokOAuth, ensureFreshTikTokAccessToken, publishTikTokManualVideo, confirmTikTokPendingConnection, cleanupTikTokExpiredArtifacts } from "../src/tiktok-service.js";
-import { TikTokStore, addOAuthState, consumeOAuthState, emptyTikTokState, hasPublishedVideo, markVideoPublished, markVideosPublished, tiktokStatePath, upsertPendingConnection, findActivePendingConnectionForUser } from "../src/tiktok-store.js";
+import { handleTikTokOAuthCallback, runTikTokPollingOnce, startTikTokOAuth, ensureFreshTikTokAccessToken, publishTikTokManualVideo, confirmTikTokPendingConnection, cleanupTikTokExpiredArtifacts, disconnectTikTokConnection } from "../src/tiktok-service.js";
+import { TikTokStore, addOAuthState, consumeOAuthState, emptyTikTokState, findActiveOAuthState, findAnyActivePendingConnection, hasPublishedVideo, markVideoPublished, markVideosPublished, tiktokStatePath, upsertPendingConnection } from "../src/tiktok-store.js";
 import { sanitizeTikTokText } from "../src/tiktok-sanitize.js";
 import type { BotEnv } from "../src/bot-config.js";
 import type { TikTokEnv, TikTokPendingConnection, TikTokVideo } from "../src/tiktok-types.js";
@@ -432,12 +432,45 @@ describe("tiktok interaction routing", () => {
     expect(interaction.reply).toHaveBeenCalledWith({ content: "No hay una cuenta TikTok conectada.", flags: 64 });
   });
 
+  it("blocks the same admin from starting a second active OAuth", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const first = fakeCommandInteraction("conectar", "admin");
+    await handleTikTokCommand(first as any, botEnv(), dir);
+    const second = fakeCommandInteraction("conectar", "admin");
+
+    await handleTikTokCommand(second as any, botEnv(), dir);
+    const state = await new TikTokStore(dir).read();
+
+    expect(state.oauthStates.filter((entry) => !entry.used)).toHaveLength(1);
+    expect(findActiveOAuthState(state)).toBeTruthy();
+    expect(second.reply).toHaveBeenCalledWith({
+      content: "Ya existe un proceso de conexion TikTok en curso.\nFinalizalo o espera a que expire.",
+      flags: 64
+    });
+  });
+
+  it("blocks another admin while an OAuth state is active", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    await handleTikTokCommand(fakeCommandInteraction("conectar", "admin-a") as any, botEnv(), dir);
+    const adminB = fakeCommandInteraction("conectar", "admin-b");
+
+    await handleTikTokCommand(adminB as any, botEnv(), dir);
+
+    expect((await new TikTokStore(dir).read()).oauthStates.filter((entry) => !entry.used)).toHaveLength(1);
+    expect(adminB.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining("proceso de conexion TikTok en curso"),
+      flags: 64
+    }));
+  });
+
   it("blocks a second /tiktok conectar while a pending connection is active", async () => {
     const dir = await tempDir();
     setTikTokEnabledEnv();
     const store = new TikTokStore(dir);
     await store.update((state) => upsertPendingConnection(state, pendingConnection("pending", "admin")));
-    const interaction = fakeCommandInteraction("conectar", "admin");
+    const interaction = fakeCommandInteraction("conectar", "admin-b");
 
     await handleTikTokCommand(interaction as any, botEnv(), dir);
 
@@ -445,6 +478,80 @@ describe("tiktok interaction routing", () => {
       content: expect.stringContaining("pendiente de confirmacion"),
       flags: 64
     }));
+  });
+
+  it("revokes callback tokens when a connection already exists", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await store.update((state) => addOAuthState(state, oauthState("oauth-a", "admin-a")));
+    await seedConnection(store, undefined, "open-b");
+    const revoke = vi.fn(async () => undefined);
+    const ctx = context(dir, store, fakeApi({
+      exchangeCode: async () => tokenResponse("access-a", "refresh-a"),
+      userInfo: async () => ({ openId: "open-a", displayName: "Creator A" }),
+      revokeToken: revoke
+    }));
+
+    const result = await handleTikTokOAuthCallback(ctx, { code: "code-a", state: "oauth-a", sendDm: async () => undefined, now: new Date("2026-08-15T00:01:00.000Z") });
+    const data = await store.read();
+
+    expect(result.status).toBe(409);
+    expect(revoke).toHaveBeenCalledWith("access-a");
+    expect(data.connection?.openId).toBe("open-b");
+    expect(data.pendingConnections).toHaveLength(0);
+  });
+
+  it("does not overwrite an existing connection if confirmation loses the race", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await store.update((state) => upsertPendingConnection(state, pendingConnection("pending-a", "admin-a", "open-a")));
+    const revoke = vi.fn(async () => undefined);
+    const ctx = context(dir, store, fakeApi({
+      listVideos: async () => {
+        await seedConnection(store, undefined, "open-b");
+        return { videos: [video("baseline-a")], hasMore: false };
+      },
+      revokeToken: revoke
+    }));
+
+    await expect(confirmTikTokPendingConnection(ctx, {
+      pendingState: "pending-a",
+      discordUserId: "admin-a",
+      guild: fakeGuildForAdmin("admin-a") as any
+    })).rejects.toThrow(/Otra cuenta TikTok fue conectada/);
+    const data = await store.read();
+
+    expect(data.connection?.openId).toBe("open-b");
+    expect(data.pendingConnections).toHaveLength(0);
+    expect(revoke).toHaveBeenCalledWith("access");
+  });
+
+  it("does not let upsertPendingConnection replace another authorized pending token", () => {
+    const state = emptyTikTokState();
+    upsertPendingConnection(state, pendingConnection("pending-a", "admin-a", "open-a"));
+
+    expect(() => upsertPendingConnection(state, pendingConnection("pending-b", "admin-b", "open-b"))).toThrow(/pendiente/);
+    expect(state.pendingConnections).toHaveLength(1);
+    expect(state.pendingConnections[0]?.state).toBe("pending-a");
+  });
+
+  it("disconnect revokes the connection and an old pending connection defensively", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await seedConnection(store, undefined, "open-connected");
+    await store.update((state) => upsertPendingConnection(state, pendingConnection("pending-old", "admin-b", "open-pending")));
+    const revoke = vi.fn(async () => undefined);
+
+    const disconnected = await disconnectTikTokConnection(context(dir, store, fakeApi({ revokeToken: revoke })));
+    const data = await store.read();
+
+    expect(disconnected).toBe(true);
+    expect(revoke).toHaveBeenCalledTimes(2);
+    expect(data.connection).toBeNull();
+    expect(data.pendingConnections).toHaveLength(0);
   });
 
   it("confirms TikTok from DM with guildId null and validates Admin in DISCORD_GUILD_ID", async () => {
@@ -475,7 +582,7 @@ describe("tiktok interaction routing", () => {
     const data = await store.read();
 
     expect(data.connection).toBeNull();
-    expect(findActivePendingConnectionForUser(data, "admin")).toBeTruthy();
+    expect(findAnyActivePendingConnection(data)).toBeTruthy();
     expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ content: "No se pudo consultar TikTok en este momento." }));
   });
 
@@ -691,12 +798,12 @@ function oauthState(state: string, userId: string) {
   };
 }
 
-function pendingConnection(state: string, userId: string): TikTokPendingConnection {
+function pendingConnection(state: string, userId: string, openId = "open-1"): TikTokPendingConnection {
   const key = parseTikTokEncryptionKey(keyBase64());
   return {
     state,
     discordUserId: userId,
-    openId: "open-1",
+    openId,
     displayName: "Creator",
     scopes: ["user.info.basic", "video.list"],
     encryptedAccessToken: encryptToken("access", key),
@@ -707,11 +814,15 @@ function pendingConnection(state: string, userId: string): TikTokPendingConnecti
   };
 }
 
-async function seedConnection(store: TikTokStore, accessExpiresAt = new Date(Date.now() + 3600_000).toISOString()): Promise<void> {
+async function seedConnection(
+  store: TikTokStore,
+  accessExpiresAt = new Date(Date.now() + 3600_000).toISOString(),
+  openId = "open-1"
+): Promise<void> {
   const key = parseTikTokEncryptionKey(keyBase64());
   await store.update((state) => {
     state.connection = {
-      openId: "open-1",
+      openId,
       displayName: "Creator",
       scopes: ["user.info.basic", "video.list"],
       encryptedAccessToken: encryptToken("access", key),

@@ -85,8 +85,16 @@ export function consumeOAuthState(state: TikTokState, oauthState: string, now = 
   return entry;
 }
 
+export function findActiveOAuthState(state: TikTokState, now = new Date()): TikTokOAuthState | null {
+  return state.oauthStates.find((entry) => !entry.used && new Date(entry.expiresAt).getTime() > now.getTime()) ?? null;
+}
+
 export function upsertPendingConnection(state: TikTokState, pending: TikTokPendingConnection): void {
-  state.pendingConnections = state.pendingConnections.filter((entry) => entry.state !== pending.state && entry.discordUserId !== pending.discordUserId);
+  const conflicting = state.pendingConnections.find((entry) => entry.state !== pending.state);
+  if (conflicting) {
+    throw new Error("Ya existe una conexion TikTok pendiente de confirmacion.");
+  }
+  state.pendingConnections = state.pendingConnections.filter((entry) => entry.state !== pending.state);
   state.pendingConnections.push(pending);
 }
 
@@ -100,6 +108,16 @@ export function findActivePendingConnectionForUser(
   now = new Date()
 ): TikTokPendingConnection | null {
   return state.pendingConnections.find((entry) => entry.discordUserId === discordUserId && new Date(entry.expiresAt).getTime() > now.getTime()) ?? null;
+}
+
+export function findAnyActivePendingConnection(state: TikTokState, now = new Date()): TikTokPendingConnection | null {
+  return state.pendingConnections.find((entry) => new Date(entry.expiresAt).getTime() > now.getTime()) ?? null;
+}
+
+export function takeAllPendingConnections(state: TikTokState): TikTokPendingConnection[] {
+  const pending = state.pendingConnections;
+  state.pendingConnections = [];
+  return pending;
 }
 
 export function takeExpiredPendingConnections(state: TikTokState, now = new Date()): TikTokPendingConnection[] {
@@ -127,7 +145,6 @@ export function saveConnection(state: TikTokState, connection: TikTokConnection)
 export function clearConnection(state: TikTokState): TikTokConnection | null {
   const previous = state.connection;
   state.connection = null;
-  state.pendingConnections = [];
   return previous;
 }
 
