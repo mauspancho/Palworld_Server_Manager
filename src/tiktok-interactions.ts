@@ -41,6 +41,7 @@ import {
 } from "./tiktok-republish-state.js";
 import {
   cancelTikTokPendingConnection,
+  cleanupTikTokExpiredArtifacts,
   confirmTikTokPendingConnection,
   createTikTokServiceContext,
   disconnectTikTokConnection,
@@ -48,7 +49,7 @@ import {
   publishTikTokManualVideo,
   startTikTokOAuth
 } from "./tiktok-service.js";
-import { TikTokStore } from "./tiktok-store.js";
+import { TikTokStore, findActivePendingConnectionForUser } from "./tiktok-store.js";
 import { sanitizeTikTokError, sanitizeTikTokText, tiktokLogSecrets } from "./tiktok-sanitize.js";
 import type { TikTokConnection, TikTokEnv } from "./tiktok-types.js";
 
@@ -75,6 +76,11 @@ export async function handleTikTokPendingDmButton(interaction: ButtonInteraction
   if (!isTikTokPendingDmButton(interaction.customId)) {
     return false;
   }
+  const baseTikTokEnv = loadTikTokEnv(rootDir);
+  if (!baseTikTokEnv.enabled) {
+    await safeRespond(interaction, "TikTok Alerts esta desactivado.");
+    return true;
+  }
   const tiktokEnv = loadTikTokEnv(rootDir, { requireConfigured: true });
   const ctx = createTikTokServiceContext(rootDir, env, tiktokEnv);
   const pendingState = tiktokIdFromCustomId(interaction.customId);
@@ -93,69 +99,95 @@ export async function handleTikTokPendingDmButton(interaction: ButtonInteraction
     await interaction.reply({ content: message });
     return true;
   } catch (error) {
-    await interaction.reply({ content: sanitizeTikTokError(error, env, tiktokEnv) }).catch(() => undefined);
+    await logTikTokInteraction(rootDir, env, tiktokEnv, "TikTok DM interaction fallo.", { error: sanitizeTikTokError(error, env, tiktokEnv) });
+    await safeRespond(interaction, "No se pudo consultar TikTok en este momento.");
     return true;
   }
 }
 
 export async function handleTikTokCommand(interaction: ChatInputCommandInteraction, env: BotEnv, rootDir: string): Promise<void> {
   const sub = interaction.options.getSubcommand();
-  const tiktokEnv = loadTikTokEnv(rootDir, { requireConfigured: sub !== "estado" });
+  const baseTikTokEnv = loadTikTokEnv(rootDir);
   const store = new TikTokStore(rootDir);
   const state = await store.read();
-  if (!tiktokEnv.enabled && sub !== "estado") {
+  if (!baseTikTokEnv.enabled && sub !== "estado") {
     await interaction.reply({ content: "TikTok Alerts esta desactivado. Configura TIKTOK_ALERTS_ENABLED=true para usar este comando.", flags: MessageFlags.Ephemeral });
     return;
   }
+  if (!baseTikTokEnv.enabled && sub === "estado") {
+    await interaction.reply({ content: await formatTikTokStatus(interaction, env, baseTikTokEnv, state.connection), flags: MessageFlags.Ephemeral });
+    return;
+  }
+  const tiktokEnv = loadTikTokEnv(rootDir, { requireConfigured: true });
   const ctx = createTikTokServiceContext(rootDir, env, tiktokEnv);
 
-  switch (sub) {
-    case "conectar": {
-      if (state.connection) {
-        await interaction.reply({ content: "Ya hay una cuenta TikTok conectada. Usa /tiktok desconectar antes de conectar otra.", flags: MessageFlags.Ephemeral });
-        return;
-      }
-      const url = await startTikTokOAuth(ctx, interaction.user.id);
-      await interaction.reply({
-        content: "Abre el enlace para conectar la cuenta TikTok. El enlace expira en 10 minutos.",
-        components: [
-          new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder().setLabel("Conectar cuenta TikTok").setStyle(ButtonStyle.Link).setURL(url)
-          )
-        ],
-        flags: MessageFlags.Ephemeral
-      });
-      return;
-    }
-    case "estado":
-      await interaction.reply({ content: await formatTikTokStatus(interaction, env, tiktokEnv, state.connection), flags: MessageFlags.Ephemeral });
-      return;
-    case "activar":
-    case "desactivar":
-      await store.update((data) => {
-        if (data.connection) {
-          data.connection.enabled = sub === "activar";
+  try {
+    switch (sub) {
+      case "conectar": {
+        await cleanupTikTokExpiredArtifacts(ctx);
+        const freshState = await store.read();
+        if (freshState.connection) {
+          await interaction.reply({ content: "Ya hay una cuenta TikTok conectada. Usa /tiktok desconectar antes de conectar otra.", flags: MessageFlags.Ephemeral });
+          return;
         }
-      });
-      await interaction.reply({ content: sub === "activar" ? "Monitoreo TikTok activado." : "Monitoreo TikTok desactivado. La cuenta permanece conectada.", flags: MessageFlags.Ephemeral });
-      return;
-    case "desconectar": {
-      if (!state.connection) {
-        await interaction.reply({ content: "No hay cuenta TikTok conectada.", flags: MessageFlags.Ephemeral });
+        if (findActivePendingConnectionForUser(freshState, interaction.user.id)) {
+          await interaction.reply({
+            content: "Ya existe una conexion TikTok pendiente de confirmacion.\nRevisa tus mensajes directos o cancela/vuelve a intentar cuando expire.",
+            flags: MessageFlags.Ephemeral
+          });
+          return;
+        }
+        const url = await startTikTokOAuth(ctx, interaction.user.id);
+        await interaction.reply({
+          content: "Abre el enlace para conectar la cuenta TikTok. El enlace expira en 10 minutos.",
+          components: [
+            new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder().setLabel("Conectar cuenta TikTok").setStyle(ButtonStyle.Link).setURL(url)
+            )
+          ],
+          flags: MessageFlags.Ephemeral
+        });
         return;
       }
-      const sessionId = createDisconnectSession(interaction.guildId!, interaction.user.id);
-      await interaction.reply({ ...buildTikTokDisconnectConfirmationPayload(sessionId), flags: MessageFlags.Ephemeral });
-      return;
+      case "estado":
+        await interaction.reply({ content: await formatTikTokStatus(interaction, env, tiktokEnv, state.connection), flags: MessageFlags.Ephemeral });
+        return;
+      case "activar":
+      case "desactivar": {
+        const updated = await store.update((data) => {
+          if (!data.connection) {
+            return false;
+          }
+          data.connection.enabled = sub === "activar";
+          return true;
+        });
+        await interaction.reply({
+          content: updated ? (sub === "activar" ? "Monitoreo TikTok activado." : "Monitoreo TikTok desactivado. La cuenta permanece conectada.") : "No hay una cuenta TikTok conectada.",
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
+      case "desconectar": {
+        if (!state.connection) {
+          await interaction.reply({ content: "No hay cuenta TikTok conectada.", flags: MessageFlags.Ephemeral });
+          return;
+        }
+        const sessionId = createDisconnectSession(interaction.guildId!, interaction.user.id);
+        await interaction.reply({ ...buildTikTokDisconnectConfirmationPayload(sessionId), flags: MessageFlags.Ephemeral });
+        return;
+      }
+      case "prueba":
+        await handleTikTokTestCommand(interaction, env, tiktokEnv, rootDir);
+        return;
+      case "republicar":
+        await handleTikTokRepublishCommand(interaction, env, tiktokEnv, rootDir);
+        return;
+      default:
+        await interaction.reply({ content: "Subcomando TikTok no reconocido.", flags: MessageFlags.Ephemeral });
     }
-    case "prueba":
-      await handleTikTokTestCommand(interaction, env, tiktokEnv, rootDir);
-      return;
-    case "republicar":
-      await handleTikTokRepublishCommand(interaction, env, tiktokEnv, rootDir);
-      return;
-    default:
-      await interaction.reply({ content: "Subcomando TikTok no reconocido.", flags: MessageFlags.Ephemeral });
+  } catch (error) {
+    await logTikTokInteraction(rootDir, env, tiktokEnv, "TikTok slash command fallo.", { subcommand: sub, error: sanitizeTikTokError(error, env, tiktokEnv) });
+    await safeRespond(interaction, safeTikTokCommandErrorMessage(sub));
   }
 }
 
@@ -163,21 +195,32 @@ export async function handleTikTokGuildComponent(interaction: ButtonInteraction 
   if (!("customId" in interaction) || !isTikTokGuildInteraction(interaction)) {
     return false;
   }
+  const baseTikTokEnv = loadTikTokEnv(rootDir);
+  if (!baseTikTokEnv.enabled) {
+    await safeRespond(interaction, "TikTok Alerts esta desactivado.");
+    return true;
+  }
   const tiktokEnv = loadTikTokEnv(rootDir, { requireConfigured: true });
   if (!interaction.guild || interaction.guildId !== env.DISCORD_GUILD_ID) {
     return true;
   }
-  const member = interaction.member instanceof GuildMember ? interaction.member : await interaction.guild.members.fetch(interaction.user.id);
-  if (!memberHasAnyRole(member, adminRoleNames())) {
-    await interaction.reply({ content: "No tienes permisos para usar controles TikTok.", flags: MessageFlags.Ephemeral });
-    return true;
-  }
-  if (interaction.isButton() && isTikTokDisconnectButton(interaction.customId)) {
-    await handleTikTokDisconnectButton(interaction, env, tiktokEnv, rootDir);
-    return true;
-  }
-  if (isTikTokRepublishComponent(interaction.customId)) {
-    await handleTikTokRepublishComponent(interaction, env, tiktokEnv, rootDir);
+  try {
+    const member = interaction.member instanceof GuildMember ? interaction.member : await interaction.guild.members.fetch(interaction.user.id);
+    if (!memberHasAnyRole(member, adminRoleNames())) {
+      await interaction.reply({ content: "No tienes permisos para usar controles TikTok.", flags: MessageFlags.Ephemeral });
+      return true;
+    }
+    if (interaction.isButton() && isTikTokDisconnectButton(interaction.customId)) {
+      await handleTikTokDisconnectButton(interaction, env, tiktokEnv, rootDir);
+      return true;
+    }
+    if (isTikTokRepublishComponent(interaction.customId)) {
+      await handleTikTokRepublishComponent(interaction, env, tiktokEnv, rootDir);
+      return true;
+    }
+  } catch (error) {
+    await logTikTokInteraction(rootDir, env, tiktokEnv, "TikTok component fallo.", { customId: interaction.customId, error: sanitizeTikTokError(error, env, tiktokEnv) });
+    await safeRespond(interaction, safeTikTokComponentErrorMessage(interaction.customId));
     return true;
   }
   return false;
@@ -199,7 +242,7 @@ async function handleTikTokTestCommand(interaction: ChatInputCommandInteraction,
     await interaction.editReply("La cuenta no tiene videos publicos.");
     return;
   }
-  await publishTikTokManualVideo(ctx, interaction.guild!, video, "test");
+  await publishTikTokManualVideo(ctx, interaction.guild!, video, "test", state.connection.openId);
   await interaction.editReply(`Video de prueba publicado en <#${env.GENERAL_CHAT_CHANNEL_ID}>.`);
 }
 
@@ -267,7 +310,7 @@ async function handleTikTokRepublishComponent(interaction: ButtonInteraction | S
       return;
     }
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    await publishTikTokManualVideo(createTikTokServiceContext(rootDir, env, tiktokEnv), interaction.guild!, selected, "repost");
+    await publishTikTokManualVideo(createTikTokServiceContext(rootDir, env, tiktokEnv), interaction.guild!, selected, "repost", session.openId);
     await interaction.editReply(`Video republicado en <#${env.GENERAL_CHAT_CHANNEL_ID}>.`);
     return;
   }
@@ -291,7 +334,7 @@ async function handleTikTokRepublishComponent(interaction: ButtonInteraction | S
       await interaction.reply({ content: "No hay mas paginas.", flags: MessageFlags.Ephemeral });
       return;
     }
-    if (!page.cursor) {
+    if (page.cursor === undefined) {
       await logTikTokInteraction(rootDir, env, tiktokEnv, "TikTok has_more sin cursor.", { sessionId: session.sessionId });
       await interaction.reply({ content: "TikTok indico mas resultados pero no devolvio un cursor valido.", flags: MessageFlags.Ephemeral });
       return;
@@ -300,6 +343,10 @@ async function handleTikTokRepublishComponent(interaction: ButtonInteraction | S
     const ctx = createTikTokServiceContext(rootDir, env, tiktokEnv);
     const { accessToken } = await ensureFreshTikTokAccessToken(ctx, state.connection);
     const nextPage = await new TikTokApiClient(tiktokEnv).listVideos(accessToken, 20, page.cursor);
+    if (nextPage.videos.length === 0) {
+      await interaction.followUp({ content: "No hay mas videos disponibles para republicar.", flags: MessageFlags.Ephemeral });
+      return;
+    }
     saveTikTokRepublishPage(session, nextPage);
     await interaction.editReply(buildTikTokRepublishMessage(session));
   }
@@ -358,6 +405,42 @@ function getDisconnectSession(sessionId: string): DisconnectSession | null {
 
 function deleteDisconnectSession(sessionId: string): void {
   disconnectSessions.delete(sessionId);
+}
+
+type TikTokRespondableInteraction = ChatInputCommandInteraction | ButtonInteraction | StringSelectMenuInteraction;
+
+async function safeRespond(interaction: TikTokRespondableInteraction, content: string): Promise<void> {
+  if (interaction.deferred) {
+    await interaction.editReply(content).catch(async () => {
+      await interaction.followUp({ content, flags: MessageFlags.Ephemeral }).catch(() => undefined);
+    });
+    return;
+  }
+  if (interaction.replied) {
+    await interaction.followUp({ content, flags: MessageFlags.Ephemeral }).catch(() => undefined);
+    return;
+  }
+  await interaction.reply({ content, flags: MessageFlags.Ephemeral }).catch(() => undefined);
+}
+
+function safeTikTokCommandErrorMessage(subcommand: string): string {
+  if (subcommand === "prueba") {
+    return "No se pudo publicar el video TikTok.";
+  }
+  if (subcommand === "republicar") {
+    return "No se pudo consultar TikTok en este momento.";
+  }
+  return "No se pudo consultar TikTok en este momento.";
+}
+
+function safeTikTokComponentErrorMessage(customId: string): string {
+  if (customId.startsWith(tiktokRepublishNextPrefix) || customId.startsWith(tiktokRepublishPrevPrefix)) {
+    return "No se pudo cargar esa pagina de videos TikTok.";
+  }
+  if (customId.startsWith(tiktokRepublishSelectPrefix)) {
+    return "No se pudo publicar el video TikTok.";
+  }
+  return "No se pudo consultar TikTok en este momento.";
 }
 
 async function logTikTokInteraction(rootDir: string, env: BotEnv, tiktokEnv: TikTokEnv, message: string, details?: unknown): Promise<void> {

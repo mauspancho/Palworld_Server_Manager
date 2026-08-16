@@ -13,6 +13,7 @@ import {
   addOAuthState,
   clearConnection,
   consumeOAuthState,
+  findPendingConnection,
   hasPublishedVideo,
   latestVideoId,
   markVideoPublished,
@@ -20,6 +21,7 @@ import {
   removePendingConnection,
   saveConnection,
   takePendingConnection,
+  takeExpiredPendingConnections,
   upsertPendingConnection
 } from "./tiktok-store.js";
 import type {
@@ -58,6 +60,7 @@ export function createTikTokServiceContext(rootDir: string, env: BotEnv, tiktokE
 export async function startTikTokOAuth(ctx: TikTokServiceContext, discordUserId: string, now = new Date()): Promise<string> {
   const store = ctx.store ?? new TikTokStore(ctx.rootDir);
   const api = ctx.api ?? new TikTokApiClient(ctx.tiktokEnv);
+  await cleanupTikTokExpiredArtifacts(ctx, now);
   const state = randomTikTokId("tto");
   await store.update((data) => {
     addOAuthState(data, {
@@ -148,26 +151,39 @@ export async function confirmTikTokPendingConnection(ctx: TikTokServiceContext, 
     throw new Error("Ya no tienes permisos administrativos para confirmar TikTok.");
   }
 
-  const pending = await store.update((data) => takePendingConnection(data, input.pendingState));
+  const pending = await store.update((data) => findPendingConnection(data, input.pendingState));
   if (!pending) {
     throw new Error("La confirmacion TikTok expiro o ya fue utilizada.");
   }
   if (pending.discordUserId !== input.discordUserId) {
-    await store.update((data) => upsertPendingConnection(data, pending));
     throw new Error("Esta confirmacion pertenece a otro usuario Discord.");
   }
   if (new Date(pending.expiresAt).getTime() <= now.getTime()) {
-    await revokePending(ctx, pending);
+    await cleanupTikTokExpiredArtifacts(ctx, now);
     throw new Error("La confirmacion TikTok expiro. Ejecuta /tiktok conectar nuevamente.");
   }
 
   const accessToken = decryptToken(pending.encryptedAccessToken, ctx.tiktokEnv.tokenEncryptionKey);
-  const baseline = await api.listVideos(accessToken, 20);
+  let baseline;
+  try {
+    baseline = await api.listVideos(accessToken, 20);
+  } catch (error) {
+    await logTikTok(ctx, "TikTok baseline fallo; pending conservada para reintento.", {
+      discordUserId: input.discordUserId,
+      error: sanitizeTikTokError(error, ctx.env, ctx.tiktokEnv)
+    });
+    throw new Error("No se pudo consultar TikTok en este momento. Intenta confirmar nuevamente antes de que expire la solicitud.");
+  }
   const connection = connectionFromPending(pending, now);
   connection.lastCheckAt = now.toISOString();
   connection.lastSuccessAt = now.toISOString();
   connection.lastVideoId = latestVideoId(baseline.videos);
   await store.update((data) => {
+    const currentPending = findPendingConnection(data, input.pendingState);
+    if (!currentPending || currentPending.discordUserId !== input.discordUserId || currentPending.openId !== pending.openId) {
+      throw new Error("La confirmacion TikTok expiro o cambio mientras se validaba.");
+    }
+    removePendingConnection(data, input.pendingState);
     saveConnection(data, connection);
     markVideosPublished(data, connection.openId, baseline.videos, now);
   });
@@ -233,6 +249,7 @@ export async function ensureFreshTikTokAccessToken(ctx: TikTokServiceContext, co
 export async function runTikTokPollingOnce(ctx: TikTokServiceContext, guild: Guild, now = new Date()): Promise<number> {
   const store = ctx.store ?? new TikTokStore(ctx.rootDir);
   const api = ctx.api ?? new TikTokApiClient(ctx.tiktokEnv);
+  await cleanupTikTokExpiredArtifacts(ctx, now);
   const state = await store.read();
   const connection = state.connection;
   if (!connection || !connection.enabled) {
@@ -274,11 +291,14 @@ export async function runTikTokPollingOnce(ctx: TikTokServiceContext, guild: Gui
   return published;
 }
 
-export async function publishTikTokManualVideo(ctx: TikTokServiceContext, guild: Guild, video: TikTokVideo, kind: TikTokPublishKind): Promise<void> {
+export async function publishTikTokManualVideo(ctx: TikTokServiceContext, guild: Guild, video: TikTokVideo, kind: TikTokPublishKind, expectedOpenId?: string): Promise<void> {
   const store = ctx.store ?? new TikTokStore(ctx.rootDir);
   const state = await store.read();
   if (!state.connection) {
     throw new Error("No hay cuenta TikTok conectada.");
+  }
+  if (expectedOpenId && state.connection.openId !== expectedOpenId) {
+    throw new Error("La cuenta TikTok conectada cambio. Ejecuta /tiktok republicar nuevamente.");
   }
   await publishTikTokVideo(guild, ctx.env, ctx.tiktokEnv, {
     displayName: state.connection.displayName,
@@ -287,7 +307,7 @@ export async function publishTikTokManualVideo(ctx: TikTokServiceContext, guild:
   });
   if (kind === "test") {
     await store.update((data) => {
-      if (data.connection) {
+      if (data.connection && (!expectedOpenId || data.connection.openId === expectedOpenId)) {
         markVideoPublished(data, data.connection.openId, video);
         data.connection.lastVideoId = video.id;
         data.connection.lastCheckAt = new Date().toISOString();
@@ -298,6 +318,22 @@ export async function publishTikTokManualVideo(ctx: TikTokServiceContext, guild:
   await logTikTok(ctx, kind === "repost" ? "TikTok republicacion manual." : "TikTok prueba manual publicada.", {
     videoId: maskIdentifier(video.id)
   });
+}
+
+export async function cleanupTikTokExpiredArtifacts(ctx: TikTokServiceContext, now = new Date()): Promise<number> {
+  const store = ctx.store ?? new TikTokStore(ctx.rootDir);
+  const expiredPending = await store.update((data) => {
+    data.oauthStates = data.oauthStates.filter((entry) => !entry.used && new Date(entry.expiresAt).getTime() > now.getTime());
+    return takeExpiredPendingConnections(data, now);
+  });
+  for (const pending of expiredPending) {
+    await revokePending(ctx, pending);
+    await logTikTok(ctx, "TikTok pending expirada eliminada.", {
+      discordUserId: pending.discordUserId,
+      openId: maskIdentifier(pending.openId)
+    });
+  }
+  return expiredPending.length;
 }
 
 export function connectionFromPending(pending: TikTokPendingConnection, now = new Date()): TikTokConnection {

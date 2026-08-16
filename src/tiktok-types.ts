@@ -111,7 +111,7 @@ export interface TikTokVideo {
 
 export interface TikTokVideoPage {
   videos: TikTokVideo[];
-  cursor?: string;
+  cursor?: number;
   hasMore: boolean;
 }
 

@@ -80,12 +80,12 @@ export class TikTokApiClient {
     };
   }
 
-  async listVideos(accessToken: string, maxCount = 20, cursor?: string): Promise<TikTokVideoPage> {
+  async listVideos(accessToken: string, maxCount = 20, cursor?: number): Promise<TikTokVideoPage> {
     const url = new URL(tiktokVideoListEndpoint);
     url.searchParams.set("fields", "id,title,video_description,share_url,cover_image_url,create_time");
     const payload = await this.postJson<TikTokVideoListResponse>(url.toString(), accessToken, {
       max_count: maxCount,
-      ...(cursor ? { cursor } : {})
+      ...(cursor !== undefined ? { cursor } : {})
     });
     const data = payload.data ?? {};
     return {
@@ -178,7 +178,7 @@ interface TikTokVideoListResponse {
       cover_image_url?: string;
       create_time?: number;
     }>;
-    cursor?: string;
+    cursor?: number;
     has_more?: boolean;
   };
 }

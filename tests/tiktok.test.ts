@@ -10,8 +10,11 @@ import { TikTokApiClient, grantedScopes, hasRequiredScopes, tiktokAuthorizeEndpo
 import { decryptToken, encryptToken } from "../src/tiktok-crypto.js";
 import { buildTikTokDiscordPayload, validateTikTokDestination } from "../src/tiktok-publisher.js";
 import { createTikTokRepublishSession, currentTikTokRepublishPage, moveTikTokRepublishPage, saveTikTokRepublishPage } from "../src/tiktok-republish-state.js";
-import { handleTikTokOAuthCallback, runTikTokPollingOnce, startTikTokOAuth, ensureFreshTikTokAccessToken, publishTikTokManualVideo, confirmTikTokPendingConnection } from "../src/tiktok-service.js";
-import { TikTokStore, addOAuthState, consumeOAuthState, emptyTikTokState, hasPublishedVideo, markVideoPublished, markVideosPublished, tiktokStatePath, upsertPendingConnection } from "../src/tiktok-store.js";
+import { handleTikTokCommand, handleTikTokGuildComponent, handleTikTokPendingDmButton } from "../src/tiktok-interactions.js";
+import { tiktokPendingConfirmPrefix } from "../src/tiktok-components.js";
+import { tiktokRepublishNextPrefix, tiktokRepublishSelectPrefix } from "../src/tiktok-republish-ui.js";
+import { handleTikTokOAuthCallback, runTikTokPollingOnce, startTikTokOAuth, ensureFreshTikTokAccessToken, publishTikTokManualVideo, confirmTikTokPendingConnection, cleanupTikTokExpiredArtifacts } from "../src/tiktok-service.js";
+import { TikTokStore, addOAuthState, consumeOAuthState, emptyTikTokState, hasPublishedVideo, markVideoPublished, markVideosPublished, tiktokStatePath, upsertPendingConnection, findActivePendingConnectionForUser } from "../src/tiktok-store.js";
 import { sanitizeTikTokText } from "../src/tiktok-sanitize.js";
 import type { BotEnv } from "../src/bot-config.js";
 import type { TikTokEnv, TikTokPendingConnection, TikTokVideo } from "../src/tiktok-types.js";
@@ -345,7 +348,7 @@ describe("tiktok polling, dedupe and republication", () => {
       discordUserId: "admin",
       openId: "open-1",
       displayName: "Creator",
-      firstPage: { videos: [video("video-1")], cursor: "cursor-2", hasMore: true }
+      firstPage: { videos: [video("video-1")], cursor: 1643332803000, hasMore: true }
     });
     saveTikTokRepublishPage(session, { videos: [video("video-2")], hasMore: false });
 
@@ -359,7 +362,7 @@ describe("tiktok polling, dedupe and republication", () => {
       discordUserId: "admin",
       openId: "open-1",
       displayName: "Creator",
-      firstPage: { videos: [video("video-1")], cursor: "cursor-2", hasMore: true }
+      firstPage: { videos: [video("video-1")], cursor: 1643332803000, hasMore: true }
     });
     saveTikTokRepublishPage(session, { videos: [video("video-2")], hasMore: false });
     moveTikTokRepublishPage(session, "prev");
@@ -405,6 +408,205 @@ describe("tiktok Discord safety", () => {
   });
 });
 
+describe("tiktok interaction routing", () => {
+  it("responds disabled for /tiktok conectar without requiring credentials", async () => {
+    const dir = await tempDir();
+    process.env.TIKTOK_ALERTS_ENABLED = "false";
+    const interaction = fakeCommandInteraction("conectar");
+
+    await expect(handleTikTokCommand(interaction as any, botEnv(), dir)).resolves.toBeUndefined();
+
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining("desactivado"),
+      flags: 64
+    }));
+  });
+
+  it("does not activate or deactivate without a connection", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const interaction = fakeCommandInteraction("activar");
+
+    await handleTikTokCommand(interaction as any, botEnv(), dir);
+
+    expect(interaction.reply).toHaveBeenCalledWith({ content: "No hay una cuenta TikTok conectada.", flags: 64 });
+  });
+
+  it("blocks a second /tiktok conectar while a pending connection is active", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await store.update((state) => upsertPendingConnection(state, pendingConnection("pending", "admin")));
+    const interaction = fakeCommandInteraction("conectar", "admin");
+
+    await handleTikTokCommand(interaction as any, botEnv(), dir);
+
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringContaining("pendiente de confirmacion"),
+      flags: 64
+    }));
+  });
+
+  it("confirms TikTok from DM with guildId null and validates Admin in DISCORD_GUILD_ID", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await store.update((state) => upsertPendingConnection(state, pendingConnection("pending", "admin")));
+    mockVideoListFetch([{ videos: [video("baseline")], hasMore: false }]);
+    const interaction = fakeDmButtonInteraction(`${tiktokPendingConfirmPrefix}pending`, "admin", fakeGuildForAdmin("admin"));
+
+    await handleTikTokPendingDmButton(interaction as any, botEnv(), dir);
+    const data = await store.read();
+
+    expect(interaction.guildId).toBeNull();
+    expect(data.connection?.openId).toBe("open-1");
+    expect(data.publishedVideos.map((entry) => entry.videoId)).toContain("baseline");
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining("Cuenta TikTok conectada") }));
+  });
+
+  it("does not confirm DM pending for a different Discord user", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await store.update((state) => upsertPendingConnection(state, pendingConnection("pending", "admin")));
+    const interaction = fakeDmButtonInteraction(`${tiktokPendingConfirmPrefix}pending`, "other", fakeGuildForAdmin("other"));
+
+    await handleTikTokPendingDmButton(interaction as any, botEnv(), dir);
+    const data = await store.read();
+
+    expect(data.connection).toBeNull();
+    expect(findActivePendingConnectionForUser(data, "admin")).toBeTruthy();
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ content: "No se pudo consultar TikTok en este momento." }));
+  });
+
+  it("does not confirm DM pending when the user lost Admin permission", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await store.update((state) => upsertPendingConnection(state, pendingConnection("pending", "admin")));
+    const interaction = fakeDmButtonInteraction(`${tiktokPendingConfirmPrefix}pending`, "admin", fakeGuildForRoles([]));
+
+    await handleTikTokPendingDmButton(interaction as any, botEnv(), dir);
+
+    expect((await store.read()).connection).toBeNull();
+    expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ content: "No se pudo consultar TikTok en este momento." }));
+  });
+
+  it("cleans expired pending connections with revoke", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    const expired = pendingConnection("expired", "admin");
+    expired.expiresAt = "2026-08-15T00:00:00.000Z";
+    await store.update((state) => upsertPendingConnection(state, expired));
+    const revoke = vi.fn(async () => undefined);
+
+    const count = await cleanupTikTokExpiredArtifacts(context(dir, store, fakeApi({ revokeToken: revoke })), new Date("2026-08-15T00:01:00.000Z"));
+
+    expect(count).toBe(1);
+    expect(revoke).toHaveBeenCalledWith("access");
+    expect((await store.read()).pendingConnections).toHaveLength(0);
+  });
+
+  it("replies safely when TikTok API fails after deferReply", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    await seedConnection(new TikTokStore(dir));
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("access_token=very-secret network down"));
+    const interaction = fakeCommandInteraction("prueba");
+
+    await handleTikTokCommand(interaction as any, botEnv(), dir);
+
+    expect(interaction.deferReply).toHaveBeenCalled();
+    expect(interaction.editReply).toHaveBeenCalledWith("No se pudo publicar el video TikTok.");
+  });
+
+  it("loads page 2 through the real component handler and republishes video-page-2 without changing dedupe", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await seedConnection(store);
+    await store.update((state) => {
+      markVideoPublished(state, "open-1", video("published"));
+      if (state.connection) {
+        state.connection.lastVideoId = "published";
+        state.connection.lastCheckAt = "before-check";
+        state.connection.lastSuccessAt = "before-success";
+      }
+    });
+    const fetchSpy = mockVideoListFetch([
+      { videos: [video("video-page-1")], cursor: 1643332803000, hasMore: true },
+      { videos: [video("video-page-2")], hasMore: false }
+    ]);
+    const sent: string[] = [];
+    const guild = fakeGuildWithGeneral(sent);
+    const command = fakeCommandInteraction("republicar", "admin", guild);
+
+    await handleTikTokCommand(command as any, botEnv(), dir);
+    const nextId = componentCustomId(command.editReply.mock.calls.at(-1)?.[0], 1, 1);
+    const next = fakeButtonInteraction(nextId, "admin", guild);
+    await handleTikTokGuildComponent(next as any, botEnv(), dir);
+
+    const selectId = next.editReply.mock.calls.at(-1)?.[0].components[0].toJSON().components[0].custom_id;
+    const select = fakeSelectInteraction(selectId, "video-page-2", "admin", guild);
+    const before = await store.read();
+    await handleTikTokGuildComponent(select as any, botEnv(), dir);
+    const after = await store.read();
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toContain("video-page-2");
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(after.publishedVideos).toEqual(before.publishedVideos);
+    expect(after.connection?.lastVideoId).toBe("published");
+    expect(after.connection?.lastCheckAt).toBe("before-check");
+    expect(after.connection?.lastSuccessAt).toBe("before-success");
+  });
+
+  it("does not save an empty next page or build an empty menu", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    await seedConnection(new TikTokStore(dir));
+    mockVideoListFetch([
+      { videos: [video("video-page-1")], cursor: 1643332803000, hasMore: true },
+      { videos: [], hasMore: false }
+    ]);
+    const guild = fakeGuildWithGeneral([]);
+    const command = fakeCommandInteraction("republicar", "admin", guild);
+    await handleTikTokCommand(command as any, botEnv(), dir);
+    const next = fakeButtonInteraction(componentCustomId(command.editReply.mock.calls.at(-1)?.[0], 1, 1), "admin", guild);
+
+    await handleTikTokGuildComponent(next as any, botEnv(), dir);
+
+    expect(next.followUp).toHaveBeenCalledWith({ content: "No hay mas videos disponibles para republicar.", flags: 64 });
+    expect(next.editReply).not.toHaveBeenCalled();
+  });
+
+  it("rejects republish selection if the connected TikTok account changed", async () => {
+    const dir = await tempDir();
+    setTikTokEnabledEnv();
+    const store = new TikTokStore(dir);
+    await seedConnection(store);
+    mockVideoListFetch([{ videos: [video("video-page-1")], hasMore: false }]);
+    const sent: string[] = [];
+    const guild = fakeGuildWithGeneral(sent);
+    const command = fakeCommandInteraction("republicar", "admin", guild);
+    await handleTikTokCommand(command as any, botEnv(), dir);
+    const selectId = command.editReply.mock.calls.at(-1)?.[0].components[0].toJSON().components[0].custom_id;
+    await store.update((state) => {
+      if (state.connection) {
+        state.connection.openId = "open-2";
+        state.connection.displayName = "Other Creator";
+      }
+    });
+    const select = fakeSelectInteraction(selectId, "video-page-1", "admin", guild);
+
+    await handleTikTokGuildComponent(select as any, botEnv(), dir);
+
+    expect(sent).toHaveLength(0);
+    expect(select.reply).toHaveBeenCalledWith({ content: "La cuenta TikTok conectada cambio. Ejecuta /tiktok republicar nuevamente.", flags: 64 });
+  });
+});
+
 async function tempDir(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "palworld-tiktok-"));
 }
@@ -438,6 +640,18 @@ function botEnv(): BotEnv {
     MEMBER_ROLE_ID: "member",
     MEMBER_LOG_CHANNEL_ID: "log"
   };
+}
+
+function setTikTokEnabledEnv(): void {
+  process.env.TIKTOK_ALERTS_ENABLED = "true";
+  process.env.TIKTOK_CLIENT_KEY = "client-key";
+  process.env.TIKTOK_CLIENT_SECRET = "client-secret";
+  process.env.TIKTOK_REDIRECT_URI = "https://example.test/tiktok/callback";
+  process.env.TIKTOK_CALLBACK_HOST = "127.0.0.1";
+  process.env.TIKTOK_CALLBACK_PORT = "8788";
+  process.env.TIKTOK_TOKEN_ENCRYPTION_KEY = keyBase64();
+  process.env.TIKTOK_POLLING_INTERVAL_SECONDS = "300";
+  process.env.TIKTOK_MENTION = "ninguna";
 }
 
 function context(dir: string, store = new TikTokStore(dir), api = fakeApi()) {
@@ -536,10 +750,121 @@ function fakeGuildWithGeneral(sent: string[], fail = false) {
   };
   return {
     id: "guild",
+    members: {
+      fetch: async () => memberWithRoles(["Admin"])
+    },
     channels: {
       fetch: async (id: string) => id === "general" ? channel : null
     }
   };
+}
+
+function fakeCommandInteraction(subcommand: string, userId = "admin", guild = fakeGuildWithGeneral([])) {
+  const interaction: any = {
+    guild,
+    guildId: "guild",
+    user: { id: userId, bot: false },
+    member: memberWithRoles(["Admin"]),
+    options: { getSubcommand: () => subcommand },
+    replied: false,
+    deferred: false,
+    reply: vi.fn(async () => {
+      interaction.replied = true;
+    }),
+    deferReply: vi.fn(async () => {
+      interaction.deferred = true;
+    }),
+    editReply: vi.fn(async () => {
+      interaction.replied = true;
+    }),
+    followUp: vi.fn(async () => undefined)
+  };
+  return interaction;
+}
+
+function fakeDmButtonInteraction(customId: string, userId: string, guild: any) {
+  const interaction: any = {
+    customId,
+    guild: null,
+    guildId: null,
+    user: { id: userId, bot: false },
+    client: {
+      guilds: {
+        fetch: vi.fn(async (id: string) => {
+          expect(id).toBe("guild");
+          return guild;
+        })
+      }
+    },
+    replied: false,
+    deferred: false,
+    reply: vi.fn(async () => {
+      interaction.replied = true;
+    }),
+    editReply: vi.fn(async () => {
+      interaction.replied = true;
+    }),
+    followUp: vi.fn(async () => undefined)
+  };
+  return interaction;
+}
+
+function fakeButtonInteraction(customId: string, userId: string, guild: any) {
+  const interaction: any = {
+    customId,
+    guild,
+    guildId: "guild",
+    user: { id: userId, bot: false },
+    member: memberWithRoles(["Admin"]),
+    replied: false,
+    deferred: false,
+    isButton: () => true,
+    isStringSelectMenu: () => false,
+    reply: vi.fn(async () => {
+      interaction.replied = true;
+    }),
+    update: vi.fn(async () => {
+      interaction.replied = true;
+    }),
+    deferUpdate: vi.fn(async () => {
+      interaction.deferred = true;
+    }),
+    editReply: vi.fn(async () => {
+      interaction.replied = true;
+    }),
+    followUp: vi.fn(async () => undefined)
+  };
+  return interaction;
+}
+
+function fakeSelectInteraction(customId: string, value: string, userId: string, guild: any) {
+  const interaction: any = {
+    customId,
+    values: [value],
+    guild,
+    guildId: "guild",
+    user: { id: userId, bot: false },
+    member: memberWithRoles(["Admin"]),
+    replied: false,
+    deferred: false,
+    isButton: () => false,
+    isStringSelectMenu: () => true,
+    reply: vi.fn(async () => {
+      interaction.replied = true;
+    }),
+    deferReply: vi.fn(async () => {
+      interaction.deferred = true;
+    }),
+    editReply: vi.fn(async () => {
+      interaction.replied = true;
+    }),
+    followUp: vi.fn(async () => undefined)
+  };
+  return interaction;
+}
+
+function componentCustomId(payload: any, rowIndex: number, componentIndex: number): string {
+  return payload.components[rowIndex].toJSON().components[componentIndex].custom_id;
 }
 
 function fakeGuildForAdmin(userId: string) {
@@ -572,4 +897,29 @@ function memberWithRoles(roleNames: string[]) {
 
 function jsonResponse(value: unknown): Response {
   return new Response(JSON.stringify(value), { status: 200, headers: { "content-type": "application/json" } });
+}
+
+function mockVideoListFetch(pages: Array<{ videos: TikTokVideo[]; cursor?: number; hasMore: boolean }>) {
+  let index = 0;
+  return vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+    if (!String(url).startsWith(tiktokVideoListEndpoint)) {
+      throw new Error(`Unexpected TikTok API call: ${String(url)}`);
+    }
+    const page = pages[Math.min(index, pages.length - 1)] ?? { videos: [], hasMore: false };
+    index += 1;
+    return jsonResponse({
+      data: {
+        videos: page.videos.map((item) => ({
+          id: item.id,
+          title: item.title,
+          video_description: item.videoDescription,
+          share_url: item.shareUrl,
+          cover_image_url: item.coverImageUrl,
+          create_time: item.createTime
+        })),
+        cursor: page.cursor,
+        has_more: page.hasMore
+      }
+    });
+  });
 }

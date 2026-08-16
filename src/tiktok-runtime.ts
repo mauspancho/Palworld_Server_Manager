@@ -4,7 +4,7 @@ import { OperationLogger } from "./logger.js";
 import { loadTikTokEnv } from "./tiktok-config.js";
 import { startTikTokCallbackServer, type TikTokCallbackServer } from "./tiktok-callback-server.js";
 import { validateTikTokDestination } from "./tiktok-publisher.js";
-import { createTikTokServiceContext, runTikTokPollingOnce } from "./tiktok-service.js";
+import { cleanupTikTokExpiredArtifacts, createTikTokServiceContext, runTikTokPollingOnce } from "./tiktok-service.js";
 import { TikTokStore } from "./tiktok-store.js";
 import type { TikTokEnv } from "./tiktok-types.js";
 import { sanitizeTikTokError, tiktokLogSecrets } from "./tiktok-sanitize.js";
@@ -47,6 +47,7 @@ export function createTikTokRuntime(client: Client, env: BotEnv, rootDir: string
     const guild = guildCache ?? await client.guilds.fetch(env.DISCORD_GUILD_ID);
     guildCache = guild;
     try {
+      await cleanupTikTokExpiredArtifacts({ rootDir, env, tiktokEnv, store, logger });
       const published = await runTikTokPollingOnce({ rootDir, env, tiktokEnv, store, logger }, guild);
       await store.update((state) => {
         state.pollingState.lastError = undefined;
@@ -71,6 +72,7 @@ export function createTikTokRuntime(client: Client, env: BotEnv, rootDir: string
       }
       running = true;
       callbackServer = await startTikTokCallbackServer({ client, env, tiktokEnv, rootDir });
+      await cleanupTikTokExpiredArtifacts({ rootDir, env, tiktokEnv, store, logger });
       await store.update((state) => {
         state.pollingState.lastStartedAt = new Date().toISOString();
       });

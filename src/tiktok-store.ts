@@ -69,7 +69,6 @@ export function normalizeTikTokState(value: Partial<TikTokState> | null | undefi
 
 export function pruneExpiredOAuthEntries(state: TikTokState, now = new Date()): void {
   state.oauthStates = state.oauthStates.filter((entry) => !entry.used && new Date(entry.expiresAt).getTime() > now.getTime());
-  state.pendingConnections = state.pendingConnections.filter((entry) => new Date(entry.expiresAt).getTime() > now.getTime());
 }
 
 export function addOAuthState(state: TikTokState, entry: TikTokOAuthState): void {
@@ -89,6 +88,26 @@ export function consumeOAuthState(state: TikTokState, oauthState: string, now = 
 export function upsertPendingConnection(state: TikTokState, pending: TikTokPendingConnection): void {
   state.pendingConnections = state.pendingConnections.filter((entry) => entry.state !== pending.state && entry.discordUserId !== pending.discordUserId);
   state.pendingConnections.push(pending);
+}
+
+export function findPendingConnection(state: TikTokState, pendingState: string): TikTokPendingConnection | null {
+  return state.pendingConnections.find((entry) => entry.state === pendingState) ?? null;
+}
+
+export function findActivePendingConnectionForUser(
+  state: TikTokState,
+  discordUserId: string,
+  now = new Date()
+): TikTokPendingConnection | null {
+  return state.pendingConnections.find((entry) => entry.discordUserId === discordUserId && new Date(entry.expiresAt).getTime() > now.getTime()) ?? null;
+}
+
+export function takeExpiredPendingConnections(state: TikTokState, now = new Date()): TikTokPendingConnection[] {
+  const expired = state.pendingConnections.filter((entry) => new Date(entry.expiresAt).getTime() <= now.getTime());
+  if (expired.length > 0) {
+    state.pendingConnections = state.pendingConnections.filter((entry) => new Date(entry.expiresAt).getTime() > now.getTime());
+  }
+  return expired;
 }
 
 export function takePendingConnection(state: TikTokState, pendingState: string): TikTokPendingConnection | null {

@@ -3,7 +3,7 @@ import { randomTikTokId } from "./tiktok-crypto.js";
 
 export interface TikTokRepublishPage {
   videos: TikTokVideo[];
-  cursor?: string;
+  cursor?: number;
   hasMore: boolean;
 }
 
