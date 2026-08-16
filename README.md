@@ -19,6 +19,7 @@ Herramienta multiplataforma para administrar Discord y automatizaciones comunita
 - Anti-raid: base desactivada por defecto, sin ban ni kick automatico.
 - RCON: abstraccion separada, desactivada por defecto.
 - Control Palworld: helper externo permitido, desactivado por defecto.
+- TikTok Alerts: Login Kit Web para conectar una cuenta TikTok por DM, detectar videos nuevos, publicar en `GENERAL_CHAT_CHANNEL_ID`, republicar videos existentes y deduplicar anuncios.
 - Vinculacion Discord-Palworld: base desactivada, sin verificacion automatica.
 
 ## Variables
@@ -74,6 +75,22 @@ QUARANTINE_ROLE_ID=
 PLAYER_LINKING_ENABLED=false
 ```
 
+TikTok Alerts:
+
+```txt
+TIKTOK_ALERTS_ENABLED=false
+TIKTOK_CLIENT_KEY=
+TIKTOK_CLIENT_SECRET=
+TIKTOK_REDIRECT_URI=
+TIKTOK_CALLBACK_HOST=127.0.0.1
+TIKTOK_CALLBACK_PORT=8788
+TIKTOK_TOKEN_ENCRYPTION_KEY=
+TIKTOK_POLLING_INTERVAL_SECONDS=300
+TIKTOK_MENTION=ninguna
+```
+
+`TIKTOK_MENTION` acepta `ninguna`, `everyone` o `here`. Si `TIKTOK_ALERTS_ENABLED=false`, el bot no exige credenciales TikTok y arranca igual que antes.
+
 Control Palworld:
 
 ```txt
@@ -88,6 +105,138 @@ Nunca guardes tokens, contrasenas RCON ni secretos en Git.
 `GUILD_REQUEST_CHANNEL_ID` es opcional para gremios: si no se configura, el bot crea o reutiliza automaticamente el canal privado definido por `requestChannelName` en `config/guilds.yml`.
 
 `DONATIONS_CHANNEL_ID` es opcional: si no se configura, la bienvenida busca el canal `💖・apoya-el-servidor` por nombre para mostrarlo como mencion.
+
+## TikTok Alerts
+
+La integracion TikTok es single-guild y usa solamente `DISCORD_GUILD_ID`. No crea canales, categorias ni roles. Todas las publicaciones van al canal existente `GENERAL_CHAT_CHANNEL_ID`.
+
+Comandos administrativos:
+
+```txt
+/tiktok conectar
+/tiktok estado
+/tiktok activar
+/tiktok desactivar
+/tiktok desconectar
+/tiktok prueba
+/tiktok republicar
+```
+
+Flujo de conexion:
+
+1. Un administrador ejecuta `/tiktok conectar`.
+2. El bot responde de forma efimera con un boton hacia TikTok Login Kit.
+3. TikTok redirige a `TIKTOK_REDIRECT_URI`.
+4. El proceso del bot recibe `GET /tiktok/callback` en `TIKTOK_CALLBACK_HOST:TIKTOK_CALLBACK_PORT`.
+5. El bot intercambia el `code`, valida scopes y manda un DM al mismo administrador.
+6. El administrador confirma la cuenta por DM.
+7. El bot crea baseline con videos existentes y no publica historicos.
+
+Scopes requeridos en TikTok Developer:
+
+```txt
+user.info.basic
+video.list
+```
+
+Redirect URI para el despliegue previsto:
+
+```txt
+https://tiktok-palworld.linuxred.lat/tiktok/callback
+```
+
+Ejemplo Debian con Cloudflare Tunnel externo:
+
+```txt
+TIKTOK_ALERTS_ENABLED=true
+TIKTOK_CLIENT_KEY=
+TIKTOK_CLIENT_SECRET=
+TIKTOK_REDIRECT_URI=https://tiktok-palworld.linuxred.lat/tiktok/callback
+TIKTOK_CALLBACK_HOST=172.17.0.1
+TIKTOK_CALLBACK_PORT=8788
+TIKTOK_TOKEN_ENCRYPTION_KEY=
+TIKTOK_POLLING_INTERVAL_SECONDS=300
+TIKTOK_MENTION=everyone
+```
+
+Cloudflare Tunnel se configura fuera del bot:
+
+```txt
+tiktok-palworld.linuxred.lat -> HTTP -> 172.17.0.1:8788
+```
+
+No se modifica Docker, Cloudflare ni systemd desde el codigo.
+
+Login Kit Web tambien requiere configurar en TikTok Developer los enlaces publicos de la app. Pueden ser externos, por ejemplo:
+
+```txt
+Website: https://tiktok.linuxred.lat/
+Terms: https://tiktok.linuxred.lat/terms
+Privacy: https://tiktok.linuxred.lat/privacy
+```
+
+Sandbox y Production usan el mismo codigo. Solo cambian en `.env`:
+
+```txt
+TIKTOK_CLIENT_KEY=
+TIKTOK_CLIENT_SECRET=
+```
+
+El Target User de Sandbox se administra en TikTok Developer.
+
+Generar `TIKTOK_TOKEN_ENCRYPTION_KEY`:
+
+```sh
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+```
+
+O con OpenSSL:
+
+```sh
+openssl rand -base64 32
+```
+
+La llave debe representar exactamente 32 bytes en base64 o hexadecimal. No la guardes en Git.
+
+Seguridad:
+
+- Los tokens OAuth se guardan cifrados con AES-256-GCM en `data/tiktok-state.json`.
+- Cada token usa IV aleatorio.
+- No se registran access tokens, refresh tokens, client secret, encryption key, authorization code ni OAuth state completo.
+- Los botones de confirmacion por DM funcionan aunque `interaction.guildId === null`, pero solo para custom IDs TikTok conocidos.
+- Antes de confirmar, el bot vuelve a comprobar que el usuario sigue teniendo rol `Admin`.
+
+Monitoreo:
+
+- `TIKTOK_POLLING_INTERVAL_SECONDS` controla el polling; minimo validado: 60 segundos.
+- El access token se refresca automaticamente antes de expirar.
+- Si TikTok rota `refresh_token`, el bot guarda el nuevo valor cifrado.
+- El dedupe persistente usa `openId + videoId`.
+- Si Discord falla al enviar un video, ese video no se marca como publicado y se reintentara despues.
+
+Publicacion:
+
+- Automatico: titulo `Nuevo video en TikTok`.
+- `/tiktok prueba`: publica el video mas reciente como `TikTok prueba manual` y lo marca publicado para evitar duplicado inmediato.
+- `/tiktok republicar`: muestra un selector efimero con hasta 20 videos por pagina y botones `Anterior`/`Siguiente`.
+- La republicacion manual puede volver a publicar un video ya anunciado, pero no modifica dedupe, baseline, `lastVideoId`, `lastCheckAt` ni `lastSuccessAt`.
+- Las paginas de republicacion se guardan en una sesion en memoria por 10 minutos; un video de pagina 2+ se publica desde la pagina cacheada, no desde una nueva consulta de pagina 1.
+
+Estado persistente:
+
+```txt
+data/tiktok-state.json
+```
+
+Incluye conexion cifrada, OAuth states temporales, pending connections, videos publicados y estado de polling. El archivo no se versiona.
+
+Troubleshooting:
+
+- `TikTok Alerts esta desactivado`: configura `TIKTOK_ALERTS_ENABLED=true`.
+- `TIKTOK_REDIRECT_URI debe usar HTTPS`: TikTok Login Kit Web requiere callback HTTPS publico.
+- `TikTok no concedio los permisos requeridos`: revisa scopes `user.info.basic` y `video.list`.
+- `Discord no pudo enviar DM`: habilita mensajes directos y ejecuta `/tiktok conectar` otra vez.
+- `GENERAL_CHAT_CHANNEL_ID no corresponde...`: corrige el ID del canal general existente; el bot no crea uno nuevo.
 
 ## Permisos E Intents
 
@@ -338,6 +487,8 @@ Para recuperar solicitudes antiguas de gremio que quedaron pendientes sin tarjet
 Para enviar un anuncio administrativo, usa `/mensaje` desde el canal configurado en `MEMBER_LOG_CHANNEL_ID`. Discord mostrara un modal con titulo y cuerpo; al enviarlo, el bot publicara el mensaje en `GENERAL_CHAT_CHANNEL_ID` con `@everyone` y lo fijara.
 
 Para editar el texto del canal de donaciones sin modificar archivos manualmente, usa `/donaciones editar`. Debe existir primero el mensaje publicado por `npm run donations:publish`.
+
+Para TikTok, registra comandos con `npm run commands:register` y usa `/tiktok conectar` desde un usuario con rol `Admin`. El callback HTTP se inicia junto con `npm run bot:start` cuando `TIKTOK_ALERTS_ENABLED=true`.
 
 ## Desactivar Modulos
 

@@ -13,6 +13,8 @@ import { TcpRconProbe } from "./rcon-client.js";
 import { validateBotConfiguration } from "./bot-validation.js";
 import { validateExistingSelfRoles } from "./self-roles-validation.js";
 import { loadBreedingCatalog, summarizeBreedingData } from "./breeding-service.js";
+import { loadTikTokEnv } from "./tiktok-config.js";
+import { validateTikTokDestination } from "./tiktok-publisher.js";
 
 const context = createContext();
 
@@ -23,12 +25,14 @@ async function main(): Promise<void> {
   const breedingCatalog = await loadBreedingCatalog(context.rootDir);
   const breedingSummary = summarizeBreedingData(breedingCatalog);
   loadStatusConfig();
+  const tiktokEnv = loadTikTokEnv(context.rootDir);
   const env = loadBotEnv(context.rootDir);
   const session = await connectDiscord(env);
   try {
     const botValidation = await validateBotConfiguration(session.guild, session.botMember, env);
     const selfRoleValidation = await validateExistingSelfRoles(session.guild, session.botMember, env, selfRoles);
-    const errors = [...botValidation.errors, ...selfRoleValidation.errors];
+    const tiktokErrors = tiktokEnv.enabled ? await validateTikTokDestination(session.guild, session.botMember, env) : [];
+    const errors = [...botValidation.errors, ...selfRoleValidation.errors, ...tiktokErrors];
     const warnings = [...botValidation.warnings, ...selfRoleValidation.warnings];
     for (const warning of warnings) {
       console.warn(`Advertencia: ${warning}`);

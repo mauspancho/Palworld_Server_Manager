@@ -80,6 +80,7 @@ import {
 } from "./donations-components.js";
 import { buildDonationsMessagePayload, donationsChannelName, normalizeDonationsMessageConfig, validateDonationsMessageConfig } from "./donations-panel.js";
 import { findExistingDonationsMessage, readDonationsMessageState } from "./donations-publisher.js";
+import { handleTikTokCommand, handleTikTokGuildComponent, isTikTokGuildInteraction } from "./tiktok-interactions.js";
 
 export async function handleBotInteraction(interaction: Interaction, env: BotEnv, rootDir: string): Promise<boolean> {
   if (!interaction.guild || interaction.guildId !== env.DISCORD_GUILD_ID) {
@@ -94,6 +95,9 @@ export async function handleBotInteraction(interaction: Interaction, env: BotEnv
   if ((interaction.isButton() || isModalSubmitInteraction(interaction)) && isGuildRequestComponent(interaction.customId)) {
     await handleGuildRequestInteraction(interaction, env, rootDir);
     return true;
+  }
+  if ((interaction.isButton() || interaction.isStringSelectMenu()) && isTikTokGuildInteraction(interaction)) {
+    return handleTikTokGuildComponent(interaction, env, rootDir);
   }
   if (isModalSubmitInteraction(interaction) && isAdminMessageModal(interaction.customId)) {
     await handleAdminMessageModalSubmit(interaction, env, rootDir);
@@ -129,6 +133,9 @@ async function handleChatInput(interaction: ChatInputCommandInteraction, env: Bo
       return;
     case "donaciones":
       await handleDonationsCommand(interaction, env, rootDir);
+      return;
+    case "tiktok":
+      await handleTikTokCommand(interaction, env, rootDir);
       return;
     case "solicitudes-pendientes":
       await handlePendingGuildRequestsCommand(interaction, env, rootDir);

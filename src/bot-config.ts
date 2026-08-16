@@ -48,6 +48,8 @@ export function loadBotEnv(rootDir: string): BotEnv {
 export function botEnvSecrets(env?: Partial<BotEnv>): string[] {
   return [
     env?.DISCORD_BOT_TOKEN ?? process.env.DISCORD_BOT_TOKEN ?? "",
-    process.env.PALWORLD_RCON_PASSWORD ?? ""
+    process.env.PALWORLD_RCON_PASSWORD ?? "",
+    process.env.TIKTOK_CLIENT_SECRET ?? "",
+    process.env.TIKTOK_TOKEN_ENCRYPTION_KEY ?? ""
   ].filter(Boolean);
 }

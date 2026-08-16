@@ -384,6 +384,7 @@ describe("commands and atomic writes", () => {
     expect(names).toContain("solicitudes-pendientes");
     expect(names).toContain("mensaje");
     expect(names).toContain("donaciones");
+    expect(names).toContain("tiktok");
     expect(names).toContain("estado");
     expect(names).toContain("crianza");
     expect(names).toContain("crianza-panel");
@@ -394,6 +395,8 @@ describe("commands and atomic writes", () => {
     const donationsOptions = slashCommandDefinitions().find((command) => command.name === "donaciones")?.options?.map((option) => option.name) ?? [];
     expect(guildOptions).toEqual(expect.arrayContaining(["solicitar", "solicitudes", "aprobar", "rechazar", "agregar", "eliminar"]));
     expect(donationsOptions).toContain("editar");
+    const tiktokOptions = slashCommandDefinitions().find((command) => command.name === "tiktok")?.options?.map((option) => option.name) ?? [];
+    expect(tiktokOptions).toEqual(expect.arrayContaining(["conectar", "estado", "activar", "desactivar", "desconectar", "prueba", "republicar"]));
   });
 
   it("classifies public and restricted slash commands with default permissions", () => {
@@ -404,6 +407,7 @@ describe("commands and atomic writes", () => {
     expect(commandAccessLevel("solicitudes-pendientes")).toBe("administrator");
     expect(commandAccessLevel("mensaje")).toBe("administrator");
     expect(commandAccessLevel("donaciones")).toBe("administrator");
+    expect(commandAccessLevel("tiktok")).toBe("administrator");
     expect(commandAccessLevel("crianza-panel")).toBe("administrator");
     expect(publicCommandNames()).toContain("crianza");
     expect(publicCommandNames()).toContain("gremio");
@@ -411,11 +415,13 @@ describe("commands and atomic writes", () => {
     expect(restrictedCommandNames()).toContain("solicitudes-pendientes");
     expect(restrictedCommandNames()).toContain("mensaje");
     expect(restrictedCommandNames()).toContain("donaciones");
+    expect(restrictedCommandNames()).toContain("tiktok");
     expect(commands.get("crianza")?.default_member_permissions).toBeUndefined();
     expect(commands.get("gremio")?.default_member_permissions).toBeUndefined();
     expect(commands.get("solicitudes-pendientes")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("mensaje")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("donaciones")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
+    expect(commands.get("tiktok")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("crianza-panel")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("informacion")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());
     expect(commands.get("palworld")?.default_member_permissions).toBe(PermissionFlagsBits.Administrator.toString());

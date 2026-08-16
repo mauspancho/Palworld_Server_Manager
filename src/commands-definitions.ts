@@ -103,6 +103,19 @@ export function slashCommandDefinitions(): RESTPostAPIChatInputApplicationComman
         }
       ]
     },
+    {
+      name: "tiktok",
+      description: "Administrar alertas TikTok",
+      options: [
+        { type: ApplicationCommandOptionType.Subcommand, name: "conectar", description: "Conectar una cuenta TikTok mediante Login Kit" },
+        { type: ApplicationCommandOptionType.Subcommand, name: "estado", description: "Ver estado de la integracion TikTok" },
+        { type: ApplicationCommandOptionType.Subcommand, name: "activar", description: "Activar monitoreo TikTok" },
+        { type: ApplicationCommandOptionType.Subcommand, name: "desactivar", description: "Desactivar monitoreo TikTok sin desconectar la cuenta" },
+        { type: ApplicationCommandOptionType.Subcommand, name: "desconectar", description: "Desconectar y revocar la cuenta TikTok" },
+        { type: ApplicationCommandOptionType.Subcommand, name: "prueba", description: "Publicar manualmente el video TikTok mas reciente" },
+        { type: ApplicationCommandOptionType.Subcommand, name: "republicar", description: "Republicar manualmente un video TikTok existente" }
+      ]
+    },
     { name: "estado", description: "Mostrar estado actual del servidor Palworld" },
     {
       name: "sugerencia",

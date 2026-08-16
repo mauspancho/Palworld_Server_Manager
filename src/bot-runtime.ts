@@ -30,6 +30,8 @@ import {
   publishRulesPromptForMember
 } from "./rules-acceptance.js";
 import { donationsChannelName } from "./donations-panel.js";
+import { createTikTokRuntime, validateTikTokStartup, type TikTokRuntime } from "./tiktok-runtime.js";
+import { handleTikTokPendingDmButton, isTikTokPendingDmButton } from "./tiktok-interactions.js";
 
 interface ProcessedJoin {
   memberId: string;
@@ -44,6 +46,7 @@ export interface BotRuntimeOptions {
 const processedJoins = new Map<string, ProcessedJoin>();
 const processedJoinTtlMs = 10 * 60 * 1000;
 const registeredClients = new WeakSet<Client>();
+const tiktokRuntimes = new WeakMap<Client, TikTokRuntime>();
 
 export function createBotClient(): Client {
   return new Client({
@@ -64,6 +67,7 @@ export async function validateBotStartup(client: Client, env: BotEnv, rootDir = 
   const selfRolesResult = await validateExistingSelfRoles(guild, botMember, env, selfRolesConfig);
   const desired = await loadDesiredStructure(path.join(rootDir, "config", "server-structure.yml"));
   const infoPermissionResult = await validateInformationPermissionConfiguration(guild, botMember, desired);
+  const tiktokErrors = await validateTikTokStartup(client, env, rootDir);
   const breedingWarnings: string[] = [];
   await loadBreedingCatalog(rootDir).then((catalog) => {
     const summary = summarizeBreedingData(catalog);
@@ -78,7 +82,7 @@ export async function validateBotStartup(client: Client, env: BotEnv, rootDir = 
       breedingWarnings.push(error instanceof Error ? error.message : String(error));
     });
   }
-  const errors = [...result.errors, ...selfRolesResult.errors, ...infoPermissionResult.errors];
+  const errors = [...result.errors, ...selfRolesResult.errors, ...infoPermissionResult.errors, ...tiktokErrors];
   const warnings = [...result.warnings, ...selfRolesResult.warnings, ...infoPermissionResult.warnings, ...breedingWarnings.map((warning) => `Crianza: ${warning}`)];
   for (const warning of warnings) {
     safeLog(`Advertencia: ${warning}`);
@@ -111,6 +115,9 @@ export function registerBotHandlers(client: Client, env: BotEnv, options: BotRun
         safeLog(`Panel de reglas ${result.action === "created" ? "publicado" : "actualizado"}: ${result.messageId}.`);
       }).catch((error) => safeError("No se pudo publicar el panel de reglas.", error, env));
     }
+    const tiktokRuntime = createTikTokRuntime(client, env, rootDir);
+    tiktokRuntimes.set(client, tiktokRuntime);
+    await tiktokRuntime.start().catch((error) => safeError("No se pudo iniciar TikTok runtime.", error, env));
   });
 
   client.on("guildMemberAdd", async (member) => {
@@ -130,6 +137,12 @@ export function registerBotHandlers(client: Client, env: BotEnv, options: BotRun
   });
 
   client.on("interactionCreate", async (interaction) => {
+    if (interaction.isButton() && isTikTokPendingDmButton(interaction.customId)) {
+      await handleTikTokPendingDmButton(interaction, env, options.rootDir ?? process.cwd()).catch((error) => {
+        safeError("Error procesando confirmacion TikTok por DM.", error, env);
+      });
+      return;
+    }
     if (interaction.isButton() && isRulesButton(interaction.customId)) {
       await handleRulesButtonInteraction(interaction, env, options.rootDir ?? process.cwd()).catch((error) => {
         safeError("Error procesando aceptacion de reglas.", error, env);
@@ -272,6 +285,9 @@ function registerShutdown(client: Client): void {
 
 async function shutdownClient(client: Client): Promise<void> {
   safeLog("Cerrando bot de forma controlada.");
+  await tiktokRuntimes.get(client)?.stop().catch((error) => {
+    console.error(sanitizeSecret(error, botEnvSecrets()));
+  });
   client.destroy();
 }
 
